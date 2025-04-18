@@ -1,0 +1,24 @@
+version: '3'
+
+services:
+  trading-system:
+    build: .
+    container_name: trading-bot
+    restart: always
+    environment:
+      - DOCKER_ENVIRONMENT=true
+      - TZ=America/New_York  # 设置纽约时区，确保市场时间正确
+    volumes:
+      - trading-models:/app/models
+      - trading-data:/app/data
+      - ./.env:/app/.env  # 确保环境变量文件被挂载到容器内
+    healthcheck:  # 添加健康检查
+      test: ["CMD", "python", "-c", "import os; exit(0 if os.path.exists('/app/data/health.txt') and (time.time() - os.path.getmtime('/app/data/health.txt')) < 600 else 1)"]
+      interval: 5m
+      timeout: 30s
+      retries: 3
+      start_period: 1m
+
+volumes:
+  trading-models:
+  trading-data:

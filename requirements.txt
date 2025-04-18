@@ -1,0 +1,14 @@
+alpaca-trade-api==3.0.0
+pandas==2.0.3
+numpy==1.23.5
+scikit-learn==1.2.2
+joblib==1.2.0
+schedule==1.2.0
+python-dotenv==1.0.0
+matplotlib==3.7.2
+seaborn==0.12.2
+tensorflow==2.12.0
+gymnasium==0.28.1
+glob2==0.7
+pytz==2023.3
+mysql-connector-python==8.0.32
