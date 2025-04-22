@@ -3,22 +3,34 @@ version: '3'
 services:
   trading-system:
     build: .
-    container_name: trading-bot
+    container_name: trading-system
     restart: always
     environment:
       - DOCKER_ENVIRONMENT=true
-      - TZ=America/New_York  # 设置纽约时区，确保市场时间正确
+      - ALPACA_API_KEY=${ALPACA_API_KEY}
+      - ALPACA_API_SECRET=${ALPACA_API_SECRET}
+      - MYSQL_HOST=mysql
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_QUANT_DB=${MYSQL_QUANT_DB}
     volumes:
-      - trading-models:/app/models
-      - trading-data:/app/data
-      - ./.env:/app/.env  # 确保环境变量文件被挂载到容器内
-    healthcheck:  # 添加健康检查
-      test: ["CMD", "python", "-c", "import os; exit(0 if os.path.exists('/app/data/health.txt') and (time.time() - os.path.getmtime('/app/data/health.txt')) < 600 else 1)"]
-      interval: 5m
-      timeout: 30s
-      retries: 3
-      start_period: 1m
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./logs:/app/logs
+    depends_on:
+      - mysql
+
+  mysql:
+    image: mysql:8.0
+    container_name: trading-mysql
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_QUANT_DB}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    ports:
+      - "3306:3306"
 
 volumes:
-  trading-models:
-  trading-data:
+  mysql-data:

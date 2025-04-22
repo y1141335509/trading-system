@@ -19,26 +19,25 @@ docker logs -f trading-bot
 ############### 删除当前所有docker环境，并重新运行 ###############
 # 停止当前容器
 docker-compose down
-docker stop trading-bot
-docker rm trading-bot
 
-# 确认想要删除的volume：
+# 确认想要删除的volume
 docker volume ls
 
-# 删除指定volume（注意要选对想要删除的）：
-docker volume rm trading_system_trading-models
-docker volume rm trading_system_trading-data
+# 删除指定volume（如果需要清理）
+# docker volume rm trading_system_mysql-data
 
-# 然后列出images
+# 列出images
 docker images
-# 删除指定images：
+
+# 删除指定images（如果需要完全重建）
 docker rmi trading_system-trading-system
 
 # 重新构建并启动
 docker-compose build --no-cache
 docker-compose up -d
-# 进行监控：
-docker logs -f trading-bot
+
+# 进行监控：使用正确的容器名称
+docker logs -f trading-system
 ############### 删除当前所有docker环境，并重新运行 ###############
 ```
 
