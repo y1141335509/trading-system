@@ -29,6 +29,24 @@ from .utils.database import create_tables_if_not_exist, save_to_mysql
 # 设置日志
 logger = logging.getLogger(__name__)
 
+# Define a larger watchlist of stocks
+WATCHLIST = [
+    # Large cap tech (stable growth)
+    'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'NVDA', 'TSLA', 
+    
+    # Financial sector
+    'JPM', 'BAC', 'GS', 'MS', 'V', 'MA',
+    
+    # Healthcare
+    'JNJ', 'PFE', 'UNH', 'ABBV', 'MRK',
+    
+    # Consumer
+    'WMT', 'PG', 'KO', 'PEP', 'COST', 'HD',
+    
+    # ETFs for stability
+    'SPY', 'QQQ', 'IWM', 'VTI', 'XLK'
+]
+
 def hybrid_trading_decision(symbol, context, data=None, ml_model=None, ml_scaler=None, rl_model_path=None):
     """
     综合使用规则、机器学习和强化学习的交易决策
@@ -342,24 +360,37 @@ def execute_trade(symbol, action, qty=None):
         
         return None
 
-def run_intelligent_trading_system(symbols=None, schedule_retrain_enabled=True):
+def run_intelligent_trading_system(symbols=None, schedule_retrain_enabled=True, use_short_term=True):
     """
     运行智能交易系统
     
     参数:
         symbols (list, optional): 要交易的股票列表
         schedule_retrain_enabled (bool): 是否启用定期重新训练
+        use_short_term (bool): 是否使用短期交易策略
         
     返回:
         bool: 是否成功运行
     """
     logger.info("开始运行智能交易系统...")
     
-    # 如果没有提供股票列表，使用默认列表
+    # 如果没有提供股票列表，使用扩展的观察列表
     if symbols is None:
         symbols = [
-            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 
-            'META', 'TSLA', 'JPM', 'V', 'PG'
+            # Large cap tech (stable growth)
+            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'NVDA', 'TSLA', 
+            
+            # Financial sector
+            'JPM', 'BAC', 'GS', 'MS', 'V', 'MA',
+            
+            # Healthcare
+            'JNJ', 'PFE', 'UNH', 'ABBV', 'MRK',
+            
+            # Consumer
+            'WMT', 'PG', 'KO', 'PEP', 'COST', 'HD',
+            
+            # ETFs for stability
+            'SPY', 'QQQ', 'IWM', 'VTI', 'XLK'
         ]
     
     # 检查账户状态
@@ -375,6 +406,23 @@ def run_intelligent_trading_system(symbols=None, schedule_retrain_enabled=True):
     # 获取市场上下文
     context = get_market_context()
     
+    # 获取交易参数
+    trading_params = get_trading_params()
+    max_positions = int(trading_params.get('MAX_POSITIONS', 3))
+    
+    # 获取当前应交易的股票子集
+    active_symbols = get_trading_symbols(context, max_positions)
+    logger.info(f"当前市场状态: {context['market_regime']}, 活跃交易股票: {', '.join(active_symbols)}")
+    
+    # 获取当前持仓
+    current_positions = []
+    try:
+        positions = api.list_positions()
+        current_positions = [position.symbol for position in positions]
+        logger.info(f"当前持仓: {', '.join(current_positions)}")
+    except Exception as e:
+        logger.warning(f"获取当前持仓失败: {str(e)}")
+    
     # 针对每只股票进行决策和交易
     results = []
     for symbol in symbols:
@@ -387,8 +435,8 @@ def run_intelligent_trading_system(symbols=None, schedule_retrain_enabled=True):
             logger.warning(f"无足够的{symbol}数据进行决策")
             continue
         
-        # 计算技术指标
-        data = calculate_technical_indicators(data)
+        # 计算技术指标，使用短期指标参数
+        data = calculate_technical_indicators(data, use_short_term=use_short_term)
         
         # 加载机器学习模型
         model_dir = get_data_paths()['model_dir']
@@ -399,41 +447,130 @@ def run_intelligent_trading_system(symbols=None, schedule_retrain_enabled=True):
         if not os.path.exists(rl_model_path):
             rl_model_path = None
         
-        # 综合决策
+        # 综合决策，使用短期策略
         decision = hybrid_trading_decision(
             symbol, 
             context,
             data=data,
             ml_model=ml_model, 
             ml_scaler=ml_scaler, 
-            rl_model_path=rl_model_path
+            rl_model_path=rl_model_path,
+            use_short_term=use_short_term
         )
         
-        # 执行交易
-        if decision in ["买入", "卖出"]:
-            result = execute_trade(symbol, decision)
-            if result:
-                results.append(result)
+        # 确定是否执行交易
+        # 1. 如果是买入信号，只有在活跃列表中且当前持仓数量小于最大持仓数量时才买入
+        if decision == "买入":
+            if symbol in active_symbols and len(current_positions) < max_positions:
+                logger.info(f"{symbol} 符合买入条件，执行交易")
+                result = execute_trade(symbol, decision)
+                if result:
+                    results.append(result)
+                    current_positions.append(symbol)  # 更新当前持仓列表
+            else:
+                reason = ""
+                if symbol not in active_symbols:
+                    reason = "不在活跃交易列表中"
+                else:
+                    reason = f"当前持仓数量({len(current_positions)})已达最大限制({max_positions})"
+                logger.info(f"{symbol} 有买入信号但{reason}，跳过交易")
+                
+        # 2. 如果是卖出信号，只对当前持有的股票执行
+        elif decision == "卖出":
+            if symbol in current_positions:
+                logger.info(f"{symbol} 符合卖出条件，执行交易")
+                result = execute_trade(symbol, decision)
+                if result:
+                    results.append(result)
+                    current_positions.remove(symbol)  # 更新当前持仓列表
+            else:
+                logger.info(f"{symbol} 有卖出信号但当前未持有，跳过交易")
         
-        # 更新止损
-        try:
-            api.get_position(symbol)  # 检查是否持有该股票
-            update_stop_loss(symbol, trail_percent=get_trading_params()['trailing_stop_percent'])
-        except:
-            pass  # 没有持仓，跳过
+        # 3. 持有信号不执行交易
+        else:
+            logger.info(f"{symbol} 持有信号，无需交易")
+        
+        # 更新现有持仓的止损
+        if symbol in current_positions:
+            try:
+                # 使用更严格的止损设置
+                stop_percent = float(trading_params.get('STOP_LOSS_PERCENT', 0.03))
+                trail_percent = float(trading_params.get('TRAILING_STOP_PERCENT', 0.02))
+                
+                # 更新止损
+                update_stop_loss(symbol, trail_percent=trail_percent)
+            except Exception as e:
+                logger.error(f"更新{symbol}止损时出错: {str(e)}")
+    
+    # 查看最终持仓
+    logger.info("\n当前持仓:")
+    try:
+        positions = api.list_positions()
+        for position in positions:
+            print(f"{position.symbol}: {position.qty} 股, 均价: ${position.avg_entry_price}, 市值: ${position.market_value}")
+    except Exception as e:
+        logger.error(f"获取持仓失败: {str(e)}")
+    
+    # 生成每日报告
+    if datetime.now().hour >= 16:  # 如果当前时间在下午4点以后
+        generate_daily_report()
     
     # 设置定期任务
     if schedule_retrain_enabled:
-        # 设置定期重新训练模型的任务
+        # 每周一凌晨2点重新训练模型
         schedule.every().monday.at("02:00").do(schedule_retrain, symbols=symbols)
         logger.info("已设置每周一凌晨2点重新训练模型")
+        
+        # 设置每日健康检查
+        schedule.every(60).minutes.do(update_health_check)
+        logger.info("已设置每小时健康检查")
         
         # 设置每日报告任务
         schedule.every().day.at("16:30").do(generate_daily_report)
         logger.info("已设置每日16:30生成报告")
+        
+        # 根据是否使用短期策略设置不同的监控频率
+        if use_short_term:
+            # 短期策略需要更频繁监控
+            schedule.every(5).minutes.do(monitor_market, symbols=symbols, interval_minutes=5)
+            logger.info("已设置每5分钟监控市场（短期策略）")
+        else:
+            # 标准策略监控频率
+            schedule.every(15).minutes.do(monitor_market, symbols=symbols, interval_minutes=15)
+            logger.info("已设置每15分钟监控市场（标准策略）")
     
     logger.info("交易系统运行完成")
     return True
+
+def get_trading_symbols(context, max_positions=3):
+    """
+    根据市场状态选择要交易的股票子集
+    
+    参数:
+        context (dict): 市场上下文
+        max_positions (int): 最大持仓数量
+        
+    返回:
+        list: 要交易的股票代码列表
+    """
+    # 根据市场状态选择合适的股票
+    if context['market_regime'] == 'bull':
+        # 牛市偏好成长股和科技股
+        candidates = ['NVDA', 'TSLA', 'AMZN', 'META', 'QQQ', 'SPY']
+    elif context['market_regime'] == 'bear':
+        # 熊市偏好防御性股票和ETF
+        candidates = ['WMT', 'PG', 'JNJ', 'KO', 'SPY', 'VTI']
+    else:
+        # 中性市场平衡选择
+        candidates = ['AAPL', 'MSFT', 'JPM', 'V', 'SPY', 'QQQ']
+    
+    # 高波动率市场调整
+    if context.get('vix_level') == 'high':
+        # 高波动率偏好低Beta股票和ETF
+        candidates = ['PG', 'JNJ', 'KO', 'WMT', 'VTI', 'SPY']
+    
+    # 确保不超过最大持仓数量
+    return candidates[:max_positions]
 
 def schedule_retrain(symbols=None):
     """

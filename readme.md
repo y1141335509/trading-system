@@ -15,7 +15,7 @@ docker-compose down
 docker-compose build
 docker-compose -f docker-compose.live.yml up -d
 # 进行监控：
-docker logs -f trading-system  # 注意这里应该是 trading-system 而不是 paper-trading
+docker logs -f trading-system  
 ############### 每日实际交易使用 ###############
 ```
 
@@ -27,7 +27,7 @@ docker-compose down
 docker-compose build
 docker-compose -f docker-compose.paper.yml up -d
 # 进行监控：
-docker logs -f paper-trading  # 注意这里应该是 paper-trading 而不是 trading-system
+docker logs -f paper-trading  
 ############### 每日运行测试使用 ###############
 ```
 
