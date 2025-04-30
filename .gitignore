@@ -32,7 +32,7 @@ ENV/
 
 # 项目特定文件
 .env
-data/
+reports/
 models/
 *.log
 *.csv

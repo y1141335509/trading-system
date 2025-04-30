@@ -6,8 +6,21 @@
 
 <summary>Using Docker来24/7运行代码</summary>
 
+
 ```bash
-############### 每日使用 ###############
+############### 每日实际交易使用 ###############
+# 停止当前容器
+docker-compose down
+# 重新构建并启动
+docker-compose build
+docker-compose -f docker-compose.live.yml up -d
+# 进行监控：
+docker logs -f trading-bot
+############### 每日实际交易使用 ###############
+```
+
+```bash
+############### 每日运行测试使用 ###############
 # 停止当前容器
 docker-compose down
 # 重新构建并启动
@@ -15,7 +28,7 @@ docker-compose build
 docker-compose up -d
 # 进行监控：
 docker logs -f trading-bot
-############### 每日使用 ###############
+############### 每日运行测试使用 ###############
 ```
 
 ```bash
