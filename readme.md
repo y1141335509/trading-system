@@ -15,7 +15,7 @@ docker-compose down
 docker-compose build
 docker-compose -f docker-compose.live.yml up -d
 # 进行监控：
-docker logs -f trading-bot
+docker logs -f trading-system  # 注意这里应该是 trading-system 而不是 paper-trading
 ############### 每日实际交易使用 ###############
 ```
 
@@ -25,11 +25,12 @@ docker logs -f trading-bot
 docker-compose down
 # 重新构建并启动
 docker-compose build
-docker-compose up -d
+docker-compose -f docker-compose.paper.yml up -d
 # 进行监控：
-docker logs -f trading-bot
+docker logs -f paper-trading  # 注意这里应该是 paper-trading 而不是 trading-system
 ############### 每日运行测试使用 ###############
 ```
+
 
 ```bash
 ############### 删除当前所有docker环境，并重新运行 ###############

@@ -1,0 +1,37 @@
+version: '3'
+
+services:
+  paper-trading:  # 注意这里应该是 paper-trading
+    build: .
+    container_name: paper-trading
+    restart: always
+    environment:
+      - DOCKER_ENVIRONMENT=true
+      - ALPACA_API_KEY=${ALPACA_API_KEY}
+      - ALPACA_API_SECRET=${ALPACA_API_SECRET}
+      - ALPACA_PAPER=true  # 确保设置为 true
+      - MYSQL_HOST=paper-mysql
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_QUANT_DB=paper_quant
+    volumes:
+      - ./paper_data:/app/data
+      - ./paper_models:/app/models
+      - ./paper_logs:/app/logs
+    depends_on:
+      - paper-mysql
+
+  paper-mysql:
+    image: mysql:8.0
+    container_name: paper-mysql
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=paper_quant
+    volumes:
+      - paper-mysql-data:/var/lib/mysql
+    ports:
+      - "3307:3306"  # 注意这里使用了不同的端口
+
+volumes:
+  paper-mysql-data:
