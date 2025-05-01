@@ -15,8 +15,8 @@ def get_api_client():
     is_paper = os.getenv('ALPACA_PAPER', 'true').lower() == 'true'
     
     if is_paper:
-        API_KEY = os.getenv('ALPACA_API_KEY')
-        API_SECRET = os.getenv('ALPACA_API_SECRET')
+        API_KEY = os.getenv('ALPACA_PAPER_API_KEY')
+        API_SECRET = os.getenv('ALPACA_PAPER_API_SECRET')
         BASE_URL = 'https://paper-api.alpaca.markets'
     else:
         API_KEY = os.getenv('ALPACA_LIVE_API_KEY')

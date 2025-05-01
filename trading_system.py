@@ -22,8 +22,8 @@ warnings.filterwarnings('ignore')
 load_dotenv()
 
 # Alpaca API凭证
-API_KEY = os.getenv('ALPACA_API_KEY')
-API_SECRET = os.getenv('ALPACA_API_SECRET')
+API_KEY = os.getenv('ALPACA_PAPER_API_KEY')
+API_SECRET = os.getenv('ALPACA_PAPER_API_SECRET')
 BASE_URL = 'https://paper-api.alpaca.markets'
 
 # 初始化Alpaca API
@@ -305,8 +305,8 @@ import glob  # 用于查找模型文件
 load_dotenv()
 
 # Alpaca API凭证
-API_KEY = os.getenv('ALPACA_API_KEY')
-API_SECRET = os.getenv('ALPACA_API_SECRET')
+API_KEY = os.getenv('ALPACA_PAPER_API_KEY')
+API_SECRET = os.getenv('ALPACA_PAPER_API_SECRET')
 BASE_URL = 'https://paper-api.alpaca.markets'
 
 # 初始化Alpaca API

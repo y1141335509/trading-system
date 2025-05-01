@@ -31,6 +31,20 @@ docker logs -f paper-trading
 ############### 每日运行测试使用 ###############
 ```
 
+```bash
+# TODO 测试中......
+# 停止所有容器
+docker-compose down
+# 删除旧的构建缓存
+docker builder prune -f
+# 重新构建映像，确保使用最新的代码和环境变量
+docker-compose build --no-cache
+# 使用显式环境文件启动
+docker-compose -f docker-compose.live.yml --env-file .env up -d
+# 查看日志，包括启动过程中的任何错误
+docker logs -f trading-system
+```
+
 
 ```bash
 ############### 删除当前所有docker环境，并重新运行 ###############

@@ -7,8 +7,6 @@ services:
     restart: always
     environment:
       - DOCKER_ENVIRONMENT=true
-      - ALPACA_API_KEY=${ALPACA_LIVE_API_KEY}  # 使用实盘 API 密钥
-      - ALPACA_API_SECRET=${ALPACA_LIVE_API_SECRET}  # 使用实盘 API 密钥
       - ALPACA_PAPER=false  # 设置为 false 表示实盘交易
       - ALPACA_LIVE_API_KEY=${ALPACA_LIVE_API_KEY}
       - ALPACA_LIVE_API_SECRET=${ALPACA_LIVE_API_SECRET}
@@ -37,3 +35,4 @@ services:
 
 volumes:
   mysql-data:
+

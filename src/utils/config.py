@@ -118,8 +118,8 @@ def get_alpaca_credentials():
     返回:
         tuple: (API_KEY, API_SECRET, BASE_URL)
     """
-    API_KEY = get_env_variable('ALPACA_API_KEY')
-    API_SECRET = get_env_variable('ALPACA_API_SECRET')
+    API_KEY = get_env_variable('ALPACA_PPAPER_API_KEY')
+    API_SECRET = get_env_variable('ALPACA_PAPER_API_SECRET')
     
     # 确定是生产环境还是测试环境
     is_paper = get_env_variable('ALPACA_PAPER', 'true').lower() == 'true'
