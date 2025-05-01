@@ -13,13 +13,21 @@ logger = logging.getLogger(__name__)
 
 def get_api_client():
     """获取Alpaca API客户端"""
-    from alpaca_trade_api import REST
+    is_paper = os.getenv('ALPACA_PAPER', 'true').lower() == 'true'
     
-    API_KEY = os.getenv('ALPACA_API_KEY')
-    API_SECRET = os.getenv('ALPACA_API_SECRET')
-    BASE_URL = os.getenv('ALPACA_BASE_URL', 'https://paper-api.alpaca.markets')
+    if is_paper:
+        API_KEY = os.getenv('ALPACA_API_KEY')
+        API_SECRET = os.getenv('ALPACA_API_SECRET')
+        BASE_URL = 'https://paper-api.alpaca.markets'
+    else:
+        API_KEY = os.getenv('ALPACA_LIVE_API_KEY')
+        API_SECRET = os.getenv('ALPACA_LIVE_API_SECRET')
+        BASE_URL = 'https://api.alpaca.markets'
     
-    return REST(API_KEY, API_SECRET, BASE_URL, api_version='v2')
+    # Add this debug line
+    logger.info(f"Using API with KEY: {API_KEY[:5]}..., BASE_URL: {BASE_URL}, PAPER: {is_paper}")
+    
+    return tradeapi.REST(API_KEY, API_SECRET, BASE_URL, api_version='v2')
 
 def track_daily_pnl(target_date=None):
     """
