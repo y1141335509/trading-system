@@ -5,7 +5,8 @@ import pandas as pd
 from datetime import datetime, timedelta
 import logging
 import time
-from alpaca_trade_api import REST
+import alpaca_trade_api as tradeapi  # Changed this line
+
 
 # 设置日志
 logger = logging.getLogger(__name__)

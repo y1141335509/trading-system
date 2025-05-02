@@ -4,6 +4,7 @@ import os
 import time
 import schedule
 import logging
+import numpy as np
 from datetime import datetime, timedelta
 
 # Import core modules
@@ -209,10 +210,7 @@ def hybrid_trading_decision(symbol, context, data=None, ml_model=None, ml_scaler
 
 def get_market_context():
     """
-    获取市场上下文信息
-    
-    返回:
-        dict: 市场上下文
+    修改市场上下文函数以处理 VIX 数据缺失的情况
     """
     try:
         from .data.fetcher import get_stock_data
@@ -236,28 +234,28 @@ def get_market_context():
             elif latest['short_ma'] < latest['long_ma'] * 0.95:
                 market_regime = "bear"  # 熊市
         
-        # 3. 获取VIX指数数据评估波动性
-        vix_data = get_stock_data('VIX', days=30)
+        # 3. 使用 SPY 的波动率代替 VIX
         vix_level = "medium"  # 默认中等
         
-        if vix_data is not None and len(vix_data) > 0:
-            latest_vix = vix_data['close'].iloc[-1]
+        if spy_data is not None and len(spy_data) > 20:
+            # 计算 SPY 的波动率
+            returns = spy_data['close'].pct_change()
+            volatility = returns.std() * np.sqrt(252)  # 年化波动率
             
-            if latest_vix > 30:
-                vix_level = "high"  # 高恐慌
-            elif latest_vix < 15:
-                vix_level = "low"  # 低恐慌
+            if volatility > 0.25:  # 25% 年化波动率
+                vix_level = "high"
+            elif volatility < 0.15:  # 15% 年化波动率
+                vix_level = "low"
         
         # 组合上下文
         context = {
             'market_regime': market_regime,
             'vix_level': vix_level,
             'spy_data': spy_data,
-            'vix_data': vix_data,
             'timestamp': datetime.now()
         }
         
-        logger.info(f"市场状态: {market_regime}, VIX水平: {vix_level}")
+        logger.info(f"市场状态: {market_regime}, 波动水平: {vix_level}")
         return context
         
     except Exception as e:
@@ -266,7 +264,6 @@ def get_market_context():
             'market_regime': 'neutral',
             'vix_level': 'medium',
             'spy_data': None,
-            'vix_data': None,
             'timestamp': datetime.now()
         }
 
@@ -465,15 +462,14 @@ def run_intelligent_trading_system(symbols=None, schedule_retrain_enabled=True, 
         if not os.path.exists(rl_model_path):
             rl_model_path = None
         
-        # 综合决策，使用短期策略
+        # 修改决策调用
         decision = hybrid_trading_decision(
             symbol, 
             context,
             data=data,
             ml_model=ml_model, 
             ml_scaler=ml_scaler, 
-            rl_model_path=rl_model_path,
-            use_short_term=use_short_term
+            rl_model_path=rl_model_path
         )
         
         # 确定是否执行交易

@@ -5,10 +5,6 @@ from .predict import predict, predict_proba
 from .evaluate import evaluate_model, plot_feature_importance, backtest_strategy
 
 __all__ = [
-    'train_model',
-    'save_model',
-    'predict',
-    'predict_proba',
     'evaluate_model',
     'plot_feature_importance',
     'backtest_strategy'

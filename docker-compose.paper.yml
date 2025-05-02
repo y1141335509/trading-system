@@ -1,25 +1,37 @@
 version: '3'
 
 services:
-  paper-trading:  # 注意这里应该是 paper-trading
+  paper-trading:
     build: .
     container_name: paper-trading
     restart: always
     environment:
       - DOCKER_ENVIRONMENT=true
+      - ALPACA_PAPER=true
       - ALPACA_PAPER_API_KEY=${ALPACA_PAPER_API_KEY}
       - ALPACA_PAPER_API_SECRET=${ALPACA_PAPER_API_SECRET}
-      - ALPACA_PAPER=true  # 确保设置为 true
+      - ALPACA_PAPER_URL=${ALPACA_PAPER_URL}
       - MYSQL_HOST=paper-mysql
+      - MYSQL_PORT=3306
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
       - MYSQL_QUANT_DB=paper_quant
+      - MODEL_TRAINING_TIME=08:00
+      - MARKET_OPEN_TIME=09:30
+      - MARKET_CLOSE_TIME=16:00
+      - TIMEZONE=America/New_York
+      - PREMARKET_PREPARATION_TIME=09:00
+      - INITIAL_PORTFOLIO_ALLOCATION=true
+      - MAX_POSITION_SIZE=0.1     # 纸面测试使用较小的仓位
+      - REBALANCE_THRESHOLD=0.05  # 更频繁的再平衡以测试逻辑
     volumes:
       - ./paper_data:/app/data
       - ./paper_models:/app/models
       - ./paper_logs:/app/logs
+      - ./paper_cache:/app/cache   # 添加缓存目录
     depends_on:
-      - paper-mysql
+      paper-mysql:
+        condition: service_healthy
 
   paper-mysql:
     image: mysql:8.0
@@ -28,10 +40,24 @@ services:
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_PASSWORD}
       - MYSQL_DATABASE=paper_quant
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --max_connections=1000
+      --innodb_buffer_pool_size=1G
     volumes:
       - paper-mysql-data:/var/lib/mysql
     ports:
-      - "3307:3306"  # 注意这里使用了不同的端口
+      - "3307:3306"    # 使用不同端口避免与实盘冲突
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u${MYSQL_USER}", "-p${MYSQL_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
 volumes:
   paper-mysql-data:

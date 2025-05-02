@@ -9,13 +9,15 @@
 
 ```bash
 ############### 每日实际交易使用 ###############
-# 停止当前容器
-docker-compose down
-# 重新构建并启动
-docker-compose build
+# Stop containers
+docker-compose -f docker-compose.live.yml down
+# Clean up
+docker system prune -f
+# Rebuild and restart
+docker-compose -f docker-compose.live.yml build --no-cache
 docker-compose -f docker-compose.live.yml up -d
-# 进行监控：
-docker logs -f trading-system  
+# Watch logs
+docker-compose -f docker-compose.live.yml logs -f
 ############### 每日实际交易使用 ###############
 ```
 
@@ -31,19 +33,6 @@ docker logs -f paper-trading
 ############### 每日运行测试使用 ###############
 ```
 
-```bash
-# TODO 测试中......
-# 停止所有容器
-docker-compose down
-# 删除旧的构建缓存
-docker builder prune -f
-# 重新构建映像，确保使用最新的代码和环境变量
-docker-compose build --no-cache
-# 使用显式环境文件启动
-docker-compose -f docker-compose.live.yml --env-file .env up -d
-# 查看日志，包括启动过程中的任何错误
-docker logs -f trading-system
-```
 
 
 ```bash

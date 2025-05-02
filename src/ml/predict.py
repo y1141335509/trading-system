@@ -49,46 +49,39 @@ def predict(data, model, scaler=None, threshold=0.5, feature_names=None):
         logger.error(f"预测失败: {str(e)}")
         return None
 
-def predict_proba(data, model, scaler=None, feature_names=None):
+def predict_proba(features, model, scaler):
     """
-    使用模型进行概率预测
-    
-    参数:
-        data (DataFrame): 要预测的数据
-        model: 训练好的模型
-        scaler: 特征缩放器（可选）
-        feature_names (list): 特征名列表，如果为None则使用data的所有列
-        
-    返回:
-        array: 预测的概率
+    修改预测函数以确保特征列名匹配
     """
     try:
-        if model is None:
-            logger.error("模型无效，无法预测")
-            return None
-            
-        # 确保模型支持概率预测
-        if not hasattr(model, 'predict_proba'):
-            logger.error("模型不支持概率预测")
-            return None
-            
-        # 准备特征
-        X = prepare_prediction_data(data, scaler, feature_names)
-        if X is None:
-            return None
-            
-        # 进行概率预测
-        probas = model.predict_proba(X)
+        # 定义预期的特征列
+        expected_features = [
+            'open', 'high', 'low', 'close', 'volume',
+            'rsi', 'macd', 'macd_signal', 'macd_hist',
+            'bb_upper', 'bb_middle', 'bb_lower', 'atr'
+        ]
         
-        # 返回正类的概率
-        if probas.shape[1] >= 2:
-            return probas[:, 1]
-        else:
-            return probas[:, 0]
+        # 确保输入特征包含所有需要的列
+        if not all(col in features.columns for col in expected_features):
+            missing_features = [col for col in expected_features if col not in features.columns]
+            raise ValueError(f"Missing features: {missing_features}")
             
+        # 只选择需要的特征列
+        features = features[expected_features].copy()
+        
+        # 标准化特征
+        if scaler is not None:
+            features_scaled = scaler.transform(features)
+        else:
+            features_scaled = features.values
+            
+        # 预测
+        probabilities = model.predict_proba(features_scaled)
+        return probabilities[0][1]  # 返回上涨的概率
+        
     except Exception as e:
-        logger.error(f"概率预测失败: {str(e)}")
-        return None
+        logging.error(f"准备预测数据失败: {str(e)}")
+        return 0.5  # 返回中性预测
 
 def prepare_prediction_data(data, scaler=None, feature_names=None):
     """

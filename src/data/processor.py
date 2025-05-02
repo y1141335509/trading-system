@@ -7,7 +7,7 @@ import logging
 # 设置日志
 logger = logging.getLogger(__name__)
 
-def calculate_technical_indicators(data):
+def calculate_technical_indicators(data, **kwargs):
     """
     计算各种技术指标
     
