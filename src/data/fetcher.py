@@ -5,7 +5,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import logging
 import time
-import alpaca_trade_api as tradeapi  # Changed this line
+import alpaca_trade_api as tradeapi
 
 
 # 设置日志

@@ -11,24 +11,30 @@ services:
       - ALPACA_PAPER_API_KEY=${ALPACA_PAPER_API_KEY}
       - ALPACA_PAPER_API_SECRET=${ALPACA_PAPER_API_SECRET}
       - ALPACA_PAPER_URL=${ALPACA_PAPER_URL}
+      - ALPACA_LIVE_API_KEY=${ALPACA_LIVE_API_KEY}
+      - ALPACA_LIVE_API_SECRET=${ALPACA_LIVE_API_SECRET}
+      - ALPACA_LIVE_URL=${ALPACA_LIVE_URL}
       - MYSQL_HOST=paper-mysql
       - MYSQL_PORT=3306
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
       - MYSQL_QUANT_DB=paper_quant
-      - MODEL_TRAINING_TIME=08:00
-      - MARKET_OPEN_TIME=09:30
-      - MARKET_CLOSE_TIME=16:00
-      - TIMEZONE=America/New_York
-      - PREMARKET_PREPARATION_TIME=09:00
-      - INITIAL_PORTFOLIO_ALLOCATION=true
-      - MAX_POSITION_SIZE=0.1     # 纸面测试使用较小的仓位
-      - REBALANCE_THRESHOLD=0.05  # 更频繁的再平衡以测试逻辑
+      - LOG_LEVEL=INFO
+      # 微调交易策略参数，让系统更容易生成交易信号
+      - RISK_PERCENT=0.04           # 增加每次交易的风险比例
+      - MAX_POSITIONS=10            # 增加最大持仓数量
+      - STOP_LOSS_PERCENT=0.08      # 降低止损比例
+      - TRAILING_STOP_PERCENT=0.04  # 增加跟踪止损比例
+      - MAX_DRAWDOWN_LIMIT=-0.20    # 提高可接受的最大回撤
+      - RISK_ALLOCATION_LOW=0.4     # 调整风险配置，增加中高风险资产占比
+      - RISK_ALLOCATION_MEDIUM=0.4
+      - RISK_ALLOCATION_HIGH=0.2
+      # 调整监控频率
+      - MARKET_MONITORING_INTERVAL=5  # 更频繁检查市场（分钟）
     volumes:
       - ./paper_data:/app/data
       - ./paper_models:/app/models
       - ./paper_logs:/app/logs
-      - ./paper_cache:/app/cache   # 添加缓存目录
     depends_on:
       paper-mysql:
         condition: service_healthy
@@ -53,7 +59,7 @@ services:
     ports:
       - "3307:3306"    # 使用不同端口避免与实盘冲突
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u${MYSQL_USER}", "-p${MYSQL_PASSWORD}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_USER}", "-p${MYSQL_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 5

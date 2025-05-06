@@ -30,6 +30,36 @@ from .utils.database import create_tables_if_not_exist, save_to_mysql
 # 设置日志
 logger = logging.getLogger(__name__)
 
+# 设置目标池
+SYMBOLS = [
+    # 科技股
+    'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'NVDA', 'TSLA', 'AMD', 'INTC', 'CRM', 'ADBE', 'CSCO', 'ORCL', 'IBM', 'QCOM', 'NFLX',
+    
+    # 金融股
+    'JPM', 'BAC', 'GS', 'MS', 'V', 'MA', 'WFC', 'C', 'AXP', 'BLK', 'COF', 'USB', 'PNC', 'SCHW',
+    
+    # 医疗健康
+    'JNJ', 'PFE', 'UNH', 'ABBV', 'MRK', 'LLY', 'BMY', 'TMO', 'DHR', 'ABT', 'AMGN', 'CVS', 'GILD', 'ISRG', 'MDT',
+    
+    # 消费品
+    'WMT', 'PG', 'KO', 'PEP', 'COST', 'HD', 'MCD', 'NKE', 'SBUX', 'TGT', 'LOW', 'EL', 'CL', 'YUM', 'DIS',
+    
+    # 能源
+    'XOM', 'CVX', 'COP', 'EOG', 'SLB', 'OXY', 'PSX', 'VLO', 'MPC',
+    
+    # 工业股
+    'HON', 'UNP', 'UPS', 'CAT', 'DE', 'RTX', 'LMT', 'GE', 'BA', 'MMM',
+    
+    # 电信
+    'T', 'VZ', 'TMUS',
+    
+    # 房地产
+    'AMT', 'EQIX', 'PLD', 'SPG', 'O', 'WELL',
+    
+    # ETFs
+    'SPY', 'QQQ', 'IWM', 'VTI', 'XLK', 'XLF', 'XLV', 'XLP', 'XLE', 'ARKK', 'VGT', 'VOO', 'VUG', 'VYM', 'SOXX'
+]
+
 def hybrid_trading_decision(symbol, context, data=None, ml_model=None, ml_scaler=None, rl_model_path=None):
     """
     综合使用规则、机器学习和强化学习的交易决策
@@ -178,7 +208,7 @@ def get_market_context():
             returns = spy_data['close'].pct_change()
             volatility = returns.std() * np.sqrt(252)  # 年化波动率
             
-            if volatility > 0.25:  # 25% 年化波动率
+            if volatility > 0.3:  # 25% 年化波动率
                 vix_level = "high"
             elif volatility < 0.15:  # 15% 年化波动率
                 vix_level = "low"
@@ -268,28 +298,7 @@ def run_intelligent_trading_system(symbols=None, schedule_retrain_enabled=True, 
     
     # 如果没有提供股票列表，使用扩展的观察列表
     if symbols is None:
-        symbols = [
-            # 大型科技股 (高增长潜力)
-            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'AMD', 'INTC', 'AVGO',
-            # AI和半导体 (未来趋势)
-            'ARM', 'ASML', 'TSM', 'MU', 'QCOM', 'AMAT', 'KLAC', 'LRCX',
-            # 金融科技 (支付和金融服务)
-            'V', 'MA', 'JPM', 'BAC', 'GS', 'MS', 'PYPL', 'SQ', 'COIN',
-            # 云计算和软件
-            'CRM', 'ADBE', 'NOW', 'WDAY', 'SNOW', 'NET', 'DDOG',
-            # 生物科技和医疗保健
-            'LLY', 'JNJ', 'PFE', 'MRNA', 'REGN', 'ISRG', 'GILD', 'AMGN',
-            # 消费和零售
-            'COST', 'WMT', 'TGT', 'HD', 'LOW', 'MCD', 'SBUX', 'NKE',
-            # 工业和能源
-            'CAT', 'DE', 'BA', 'LMT', 'XOM', 'CVX', 'EOG', 'SLB',
-            # 电动车和新能源
-            'TSLA', 'RIVN', 'LCID', 'NIO', 'CHPT', 'ENPH', 'SEDG',
-            # 元宇宙和游戏
-            'META', 'RBLX', 'U', 'TTWO', 'EA', 'ATVI',
-            # ETFs (提供多样化)
-            'SPY', 'QQQ', 'ARKK', 'SOXX', 'SMH', 'XLK', 'XLF', 'XLE'
-        ]
+        symbols = SYMBOLS
     
     # 检查账户状态
     api = get_api_client()
@@ -489,29 +498,8 @@ def schedule_retrain(symbols=None):
     
     # 如果没有提供股票列表，使用默认列表
     if symbols is None:
-        symbols = [
-            # 大型科技股 (高增长潜力)
-            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'AMD', 'INTC', 'AVGO',
-            # AI和半导体 (未来趋势)
-            'ARM', 'ASML', 'TSM', 'MU', 'QCOM', 'AMAT', 'KLAC', 'LRCX',
-            # 金融科技 (支付和金融服务)
-            'V', 'MA', 'JPM', 'BAC', 'GS', 'MS', 'PYPL', 'SQ', 'COIN',
-            # 云计算和软件
-            'CRM', 'ADBE', 'NOW', 'WDAY', 'SNOW', 'NET', 'DDOG',
-            # 生物科技和医疗保健
-            'LLY', 'JNJ', 'PFE', 'MRNA', 'REGN', 'ISRG', 'GILD', 'AMGN',
-            # 消费和零售
-            'COST', 'WMT', 'TGT', 'HD', 'LOW', 'MCD', 'SBUX', 'NKE',
-            # 工业和能源
-            'CAT', 'DE', 'BA', 'LMT', 'XOM', 'CVX', 'EOG', 'SLB',
-            # 电动车和新能源
-            'TSLA', 'RIVN', 'LCID', 'NIO', 'CHPT', 'ENPH', 'SEDG',
-            # 元宇宙和游戏
-            'META', 'RBLX', 'U', 'TTWO', 'EA', 'ATVI',
-            # ETFs (提供多样化)
-            'SPY', 'QQQ', 'ARKK', 'SOXX', 'SMH', 'XLK', 'XLF', 'XLE'
-        ]
-
+        symbols = SYMBOLS
+        
     for symbol in symbols:
         logger.info(f"\n重新训练 {symbol} 的模型...")
         
@@ -574,28 +562,7 @@ def monitor_market(symbols=None, interval_minutes=15):
     
     # 如果没有提供股票列表，使用默认列表
     if symbols is None:
-        symbols = [
-            # 大型科技股 (高增长潜力)
-            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'AMD', 'INTC', 'AVGO',
-            # AI和半导体 (未来趋势)
-            'ARM', 'ASML', 'TSM', 'MU', 'QCOM', 'AMAT', 'KLAC', 'LRCX',
-            # 金融科技 (支付和金融服务)
-            'V', 'MA', 'JPM', 'BAC', 'GS', 'MS', 'PYPL', 'SQ', 'COIN',
-            # 云计算和软件
-            'CRM', 'ADBE', 'NOW', 'WDAY', 'SNOW', 'NET', 'DDOG',
-            # 生物科技和医疗保健
-            'LLY', 'JNJ', 'PFE', 'MRNA', 'REGN', 'ISRG', 'GILD', 'AMGN',
-            # 消费和零售
-            'COST', 'WMT', 'TGT', 'HD', 'LOW', 'MCD', 'SBUX', 'NKE',
-            # 工业和能源
-            'CAT', 'DE', 'BA', 'LMT', 'XOM', 'CVX', 'EOG', 'SLB',
-            # 电动车和新能源
-            'TSLA', 'RIVN', 'LCID', 'NIO', 'CHPT', 'ENPH', 'SEDG',
-            # 元宇宙和游戏
-            'META', 'RBLX', 'U', 'TTWO', 'EA', 'ATVI',
-            # ETFs (提供多样化)
-            'SPY', 'QQQ', 'ARKK', 'SOXX', 'SMH', 'XLK', 'XLF', 'XLE'
-        ]
+        symbols = SYMBOLS
     
     # 获取市场上下文
     context = get_market_context()
@@ -681,29 +648,8 @@ def setup_scheduled_monitoring(symbols=None, interval_minutes=15):
     """
     # 如果没有提供股票列表，使用默认列表
     if symbols is None:
-        symbols = [
-            # 大型科技股 (高增长潜力)
-            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'AMD', 'INTC', 'AVGO',
-            # AI和半导体 (未来趋势)
-            'ARM', 'ASML', 'TSM', 'MU', 'QCOM', 'AMAT', 'KLAC', 'LRCX',
-            # 金融科技 (支付和金融服务)
-            'V', 'MA', 'JPM', 'BAC', 'GS', 'MS', 'PYPL', 'SQ', 'COIN',
-            # 云计算和软件
-            'CRM', 'ADBE', 'NOW', 'WDAY', 'SNOW', 'NET', 'DDOG',
-            # 生物科技和医疗保健
-            'LLY', 'JNJ', 'PFE', 'MRNA', 'REGN', 'ISRG', 'GILD', 'AMGN',
-            # 消费和零售
-            'COST', 'WMT', 'TGT', 'HD', 'LOW', 'MCD', 'SBUX', 'NKE',
-            # 工业和能源
-            'CAT', 'DE', 'BA', 'LMT', 'XOM', 'CVX', 'EOG', 'SLB',
-            # 电动车和新能源
-            'TSLA', 'RIVN', 'LCID', 'NIO', 'CHPT', 'ENPH', 'SEDG',
-            # 元宇宙和游戏
-            'META', 'RBLX', 'U', 'TTWO', 'EA', 'ATVI',
-            # ETFs (提供多样化)
-            'SPY', 'QQQ', 'ARKK', 'SOXX', 'SMH', 'XLK', 'XLF', 'XLE'
-        ]
-    
+        symbols = SYMBOLS
+
     logger.info(f"设置定时监控（每{interval_minutes}分钟）: {', '.join(symbols)}")
     
     # 立即执行一次监控
@@ -807,28 +753,7 @@ def main():
         logger.info("在Docker环境中运行，启动持续监控模式...")
         
         # 设置要监控的股票
-        symbols = [
-            # 大型科技股 (高增长潜力)
-            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'AMD', 'INTC', 'AVGO',
-            # AI和半导体 (未来趋势)
-            'ARM', 'ASML', 'TSM', 'MU', 'QCOM', 'AMAT', 'KLAC', 'LRCX',
-            # 金融科技 (支付和金融服务)
-            'V', 'MA', 'JPM', 'BAC', 'GS', 'MS', 'PYPL', 'SQ', 'COIN',
-            # 云计算和软件
-            'CRM', 'ADBE', 'NOW', 'WDAY', 'SNOW', 'NET', 'DDOG',
-            # 生物科技和医疗保健
-            'LLY', 'JNJ', 'PFE', 'MRNA', 'REGN', 'ISRG', 'GILD', 'AMGN',
-            # 消费和零售
-            'COST', 'WMT', 'TGT', 'HD', 'LOW', 'MCD', 'SBUX', 'NKE',
-            # 工业和能源
-            'CAT', 'DE', 'BA', 'LMT', 'XOM', 'CVX', 'EOG', 'SLB',
-            # 电动车和新能源
-            'TSLA', 'RIVN', 'LCID', 'NIO', 'CHPT', 'ENPH', 'SEDG',
-            # 元宇宙和游戏
-            'META', 'RBLX', 'U', 'TTWO', 'EA', 'ATVI',
-            # ETFs (提供多样化)
-            'SPY', 'QQQ', 'ARKK', 'SOXX', 'SMH', 'XLK', 'XLF', 'XLE'
-        ]
+        symbols = SYMBOLS
         
         # 创建健康检查文件
         update_health_check()
@@ -884,29 +809,7 @@ def main():
         # 正常的交互式模式
         mode = input("选择运行模式 (1: 训练模型, 2: 单次交易分析, 3: 持续监控, 4: 性能分析, 5: 投资组合管理, 6: 卖出评估, 7: 模型评估, 8: 盈亏分析): ")
         
-        symbols = [
-            # 大型科技股 (高增长潜力)
-            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'AMD', 'INTC', 'AVGO',
-            # AI和半导体 (未来趋势)
-            'ARM', 'ASML', 'TSM', 'MU', 'QCOM', 'AMAT', 'KLAC', 'LRCX',
-            # 金融科技 (支付和金融服务)
-            'V', 'MA', 'JPM', 'BAC', 'GS', 'MS', 'PYPL', 'SQ', 'COIN',
-            # 云计算和软件
-            'CRM', 'ADBE', 'NOW', 'WDAY', 'SNOW', 'NET', 'DDOG',
-            # 生物科技和医疗保健
-            'LLY', 'JNJ', 'PFE', 'MRNA', 'REGN', 'ISRG', 'GILD', 'AMGN',
-            # 消费和零售
-            'COST', 'WMT', 'TGT', 'HD', 'LOW', 'MCD', 'SBUX', 'NKE',
-            # 工业和能源
-            'CAT', 'DE', 'BA', 'LMT', 'XOM', 'CVX', 'EOG', 'SLB',
-            # 电动车和新能源
-            'TSLA', 'RIVN', 'LCID', 'NIO', 'CHPT', 'ENPH', 'SEDG',
-            # 元宇宙和游戏
-            'META', 'RBLX', 'U', 'TTWO', 'EA', 'ATVI',
-            # ETFs (提供多样化)
-            'SPY', 'QQQ', 'ARKK', 'SOXX', 'SMH', 'XLK', 'XLF', 'XLE'
-        ]
-    
+        symbols = SYMBOLS
         
         if mode == '1':
             # 训练模型

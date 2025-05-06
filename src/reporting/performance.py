@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import logging
 from datetime import datetime, timedelta
+import alpaca_trade_api as tradeapi
 import json
 import csv
 

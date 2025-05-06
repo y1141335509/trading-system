@@ -9,28 +9,28 @@
 
 ```bash
 ############### 每日实际交易使用 ###############
-# Stop containers
+# Stop any running containers
 docker-compose -f docker-compose.live.yml down
 # Clean up
 docker system prune -f
-# Rebuild and restart
+# Build with the fixed files
 docker-compose -f docker-compose.live.yml build --no-cache
+# Start the containers
 docker-compose -f docker-compose.live.yml up -d
-# Watch logs
+# Check the logs
 docker-compose -f docker-compose.live.yml logs -f
-docker logs -f trading-system
 ############### 每日实际交易使用 ###############
 ```
 
 ```bash
 ############### 每日运行测试使用 ###############
-# 停止当前容器
-docker-compose down
-# 重新构建并启动
-docker-compose build
+# 停止当前运行的容器
+docker-compose -f docker-compose.paper.yml down
+# 构建并启动模拟交易环境
+docker-compose -f docker-compose.paper.yml build --no-cache
 docker-compose -f docker-compose.paper.yml up -d
-# 进行监控：
-docker logs -f paper-trading  
+# 查看日志
+docker logs -f paper-trading
 ############### 每日运行测试使用 ###############
 ```
 

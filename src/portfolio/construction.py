@@ -7,6 +7,7 @@ import logging
 import time
 from datetime import datetime
 from alpaca_trade_api import REST
+import alpaca_trade_api as tradeapi
 
 from ..data.fetcher import get_stock_data, get_latest_quotes
 

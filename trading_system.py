@@ -35,6 +35,36 @@ DATA_DIR = 'data'
 os.makedirs(MODEL_DIR, exist_ok=True)
 os.makedirs(DATA_DIR, exist_ok=True)
 
+# 设置目标池：
+SYMBOLS = [
+    # 科技股
+    'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'NVDA', 'TSLA', 'AMD', 'INTC', 'CRM', 'ADBE', 'CSCO', 'ORCL', 'IBM', 'QCOM', 'NFLX',
+    
+    # 金融股
+    'JPM', 'BAC', 'GS', 'MS', 'V', 'MA', 'WFC', 'C', 'AXP', 'BLK', 'COF', 'USB', 'PNC', 'SCHW',
+    
+    # 医疗健康
+    'JNJ', 'PFE', 'UNH', 'ABBV', 'MRK', 'LLY', 'BMY', 'TMO', 'DHR', 'ABT', 'AMGN', 'CVS', 'GILD', 'ISRG', 'MDT',
+    
+    # 消费品
+    'WMT', 'PG', 'KO', 'PEP', 'COST', 'HD', 'MCD', 'NKE', 'SBUX', 'TGT', 'LOW', 'EL', 'CL', 'YUM', 'DIS',
+    
+    # 能源
+    'XOM', 'CVX', 'COP', 'EOG', 'SLB', 'OXY', 'PSX', 'VLO', 'MPC',
+    
+    # 工业股
+    'HON', 'UNP', 'UPS', 'CAT', 'DE', 'RTX', 'LMT', 'GE', 'BA', 'MMM',
+    
+    # 电信
+    'T', 'VZ', 'TMUS',
+    
+    # 房地产
+    'AMT', 'EQIX', 'PLD', 'SPG', 'O', 'WELL',
+    
+    # ETFs
+    'SPY', 'QQQ', 'IWM', 'VTI', 'XLK', 'XLF', 'XLV', 'XLP', 'XLE', 'ARKK', 'VGT', 'VOO', 'VUG', 'VYM', 'SOXX'
+]
+
 ########## 指标计算函数 ##########
 def calculate_macd(data, fast=12, slow=26, signal=9):
     """计算MACD指标"""
@@ -2665,8 +2695,7 @@ if __name__ == "__main__":
         print("在Docker环境中检测到运行，自动启动持续监控模式...")
         
         # 设置要监控的股票
-        symbols = ['AAPL', 'MSFT', 'GOOGL', 'GOOG', 'NVDA', 'AMZN', 'AVGO', 'TSLA', 'WMT', 'JPM', 
-                'V', 'HD', 'CRM', 'GE', 'T', 'DIS', 'AMD', 'ABNB', 'SNOW', 'CPNG']
+        symbols = SYMBOLS
         
         # 记录启动时间
         print(f"交易系统启动于 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -2790,8 +2819,7 @@ if __name__ == "__main__":
         # 正常的交互式模式
         mode = input("选择运行模式 (1: 训练模型, 2: 单次交易分析, 3: 持续监控, 4: 性能分析, 5: 投资组合管理, 6: 卖出评估, 7: 模型评估, 8: 盈亏分析): ")
         
-        symbols = ['AAPL', 'MSFT', 'GOOGL', 'GOOG', 'NVDA', 'AMZN', 'AVGO', 'TSLA', 'WMT', 'JPM', 
-                'V', 'HD', 'CRM', 'GE', 'T', 'DIS', 'AMD', 'ABNB', 'SNOW', 'CPNG']
+        symbols = SYMBOLS
         
         if mode == '1':
             # 训练模型
