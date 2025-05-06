@@ -60,9 +60,70 @@ SYMBOLS = [
     'SPY', 'QQQ', 'IWM', 'VTI', 'XLK', 'XLF', 'XLV', 'XLP', 'XLE', 'ARKK', 'VGT', 'VOO', 'VUG', 'VYM', 'SOXX'
 ]
 
+def calculate_multi_factor_signal(data, context):
+    """Generate trading signals based on multiple technical factors"""
+    try:
+        # Get latest data point
+        latest = data.iloc[-1]
+        
+        # 1. RSI Signal
+        rsi_signal = "持有"
+        if latest['rsi'] <= 35:
+            rsi_signal = "买入"
+        elif latest['rsi'] >= 65:
+            rsi_signal = "卖出"
+        
+        # 2. MACD Signal
+        macd_signal = "持有"
+        if latest['macd_hist'] > 0 and latest['macd_hist'] > data['macd_hist'].iloc[-2]:
+            macd_signal = "买入"  # MACD histogram is positive and increasing
+        elif latest['macd_hist'] < 0 and latest['macd_hist'] < data['macd_hist'].iloc[-2]:
+            macd_signal = "卖出"  # MACD histogram is negative and decreasing
+        
+        # 3. Bollinger Band Signal
+        bb_signal = "持有"
+        if latest['close'] < latest['bb_lower']:
+            bb_signal = "买入"  # Price below lower Bollinger Band
+        elif latest['close'] > latest['bb_upper']:
+            bb_signal = "卖出"  # Price above upper Bollinger Band
+        
+        # 4. Moving Average Signal
+        ma_signal = "持有"
+        if latest['close'] > latest['ma50'] and latest['ma10'] > latest['ma50']:
+            ma_signal = "买入"  # Price and short-term MA above long-term MA
+        elif latest['close'] < latest['ma50'] and latest['ma10'] < latest['ma50']:
+            ma_signal = "卖出"  # Price and short-term MA below long-term MA
+            
+        # 5. Price Trend Signal
+        trend_signal = "持有"
+        if latest['trend_5d'] > 0 and latest['trend_10d'] > 0:
+            trend_signal = "买入"  # Short and medium-term trends positive
+        elif latest['trend_5d'] < 0 and latest['trend_10d'] < 0:
+            trend_signal = "卖出"  # Short and medium-term trends negative
+        
+        # Count buy and sell signals
+        signals = [rsi_signal, macd_signal, bb_signal, ma_signal, trend_signal]
+        buy_count = signals.count("买入")
+        sell_count = signals.count("卖出")
+        
+        # Generate final signal based on count
+        if buy_count >= 2 and buy_count > sell_count:
+            final_signal = "买入"
+        elif sell_count >= 2 and sell_count > buy_count:
+            final_signal = "卖出"
+        else:
+            final_signal = "持有"
+            
+        logger.info(f"多因子信号: RSI={rsi_signal}, MACD={macd_signal}, BB={bb_signal}, MA={ma_signal}, 趋势={trend_signal} => {final_signal}")
+        return final_signal
+        
+    except Exception as e:
+        logger.error(f"多因子信号计算失败: {str(e)}")
+        return "持有"
+
 def hybrid_trading_decision(symbol, context, data=None, ml_model=None, ml_scaler=None, rl_model_path=None):
     """
-    综合使用规则、机器学习和强化学习的交易决策
+    Modified hybrid trading decision function with increased sensitivity for buy signals
     """
     try:
         if data is None:
@@ -78,14 +139,11 @@ def hybrid_trading_decision(symbol, context, data=None, ml_model=None, ml_scaler
             logger.error(f"{symbol} 技术指标计算失败")
             return "持有"
             
-        # 获取最新数据
-        latest = data.iloc[-1]
+        # 1. 规则信号 (now using multi-factor)
+        rule_signal = calculate_multi_factor_signal(data, context)
+        logger.info(f"{symbol} 多因子规则信号: {rule_signal}")
         
-        # 1. 规则信号
-        rule_signal = calculate_rule_signal(latest, context)
-        logger.info(f"{symbol} 规则信号: {rule_signal}")
-        
-        # 2. 机器学习信号
+        # 2. 机器学习信号 (lower threshold for buy)
         ml_signal = "持有"
         if ml_model is not None and ml_scaler is not None:
             try:
@@ -93,14 +151,29 @@ def hybrid_trading_decision(symbol, context, data=None, ml_model=None, ml_scaler
                 prob_up = predict_proba(data.iloc[-1:], ml_model, ml_scaler)
                 logger.info(f"{symbol} ML预测上涨概率: {prob_up:.3f}")
                 
-                if prob_up > 0.65:
+                # Lower threshold for buy signal from 0.65 to 0.55
+                if prob_up > 0.55:
                     ml_signal = "买入"
-                elif prob_up < 0.35:
+                elif prob_up < 0.40:  # Slightly more conservative for sell
                     ml_signal = "卖出"
             except Exception as e:
                 logger.error(f"ML预测失败: {str(e)}")
         
-        # 3. 检查当前持仓
+        # 3. 强化学习信号 (if available)
+        rl_signal = "持有"
+        if rl_model_path and os.path.exists(rl_model_path):
+            try:
+                from .rl.agent import rl_decision
+                action = rl_decision(symbol, data, rl_model_path)
+                if action == 2:
+                    rl_signal = "买入"
+                elif action == 0:
+                    rl_signal = "卖出"
+                logger.info(f"{symbol} RL决策信号: {rl_signal}")
+            except Exception as e:
+                logger.error(f"RL决策失败: {str(e)}")
+        
+        # 4. 检查当前持仓
         api = get_api_client()
         has_position = False
         try:
@@ -110,28 +183,24 @@ def hybrid_trading_decision(symbol, context, data=None, ml_model=None, ml_scaler
         except Exception:
             logger.info(f"当前未持有 {symbol}")
         
-        # 4. 综合决策
-        signals = [rule_signal, ml_signal]
+        # 5. 综合决策 (more lenient for buy signals)
+        signals = [rule_signal, ml_signal, rl_signal]
         buy_count = signals.count("买入")
         sell_count = signals.count("卖出")
         
-        # 输出信号汇总
-        logger.info(f"{symbol} 信号汇总 - 规则: {rule_signal}, ML: {ml_signal}")
+        # Output signal summary
+        logger.info(f"{symbol} 信号汇总 - 规则: {rule_signal}, ML: {ml_signal}, RL: {rl_signal}")
         
-        # 根据市场状态调整决策
-        if context['market_regime'] == 'bear' and not has_position:
-            logger.info("熊市状态，避免新开仓")
-            return "持有"
-            
-        if context['vix_level'] == 'high' and not has_position:
-            logger.info("市场波动性高，避免新开仓")
+        # Less strict market regime filtering
+        if context['market_regime'] == 'bear' and context['vix_level'] == 'high' and not has_position:
+            logger.info("熊市+高波动状态，避免新开仓")
             return "持有"
         
-        # 最终决策
-        if buy_count >= 1 and not has_position:
+        # Modified decision logic - only need one buy signal if not in extreme market conditions
+        if (buy_count >= 1 and sell_count == 0) and not has_position:
             logger.info(f"{symbol} 产生买入信号")
             return "买入"
-        elif sell_count >= 1 and has_position:
+        elif (sell_count >= 1 and buy_count == 0) and has_position:
             logger.info(f"{symbol} 产生卖出信号")
             return "卖出"
         else:
@@ -145,22 +214,22 @@ def calculate_rule_signal(latest, context):
     """计算基于规则的交易信号"""
     try:
         # 动态阈值设置
-        rsi_buy = 30
-        rsi_sell = 70
+        rsi_buy = 35
+        rsi_sell = 65
         
         # 根据市场状态调整阈值
         if context['market_regime'] == 'bull':
-            rsi_buy += 10
-            rsi_sell += 10
+            rsi_buy += 5
+            rsi_sell += 5
         elif context['market_regime'] == 'bear':
-            rsi_buy -= 10
-            rsi_sell -= 10
+            rsi_buy -= 5
+            rsi_sell -= 5
         
         # 波动率调整
         if context['vix_level'] == 'high':
-            rsi_buy = max(15, rsi_buy - 10)
+            rsi_buy = max(25, rsi_buy - 10)
         elif context['vix_level'] == 'low':
-            rsi_sell = min(85, rsi_sell + 5)
+            rsi_sell = min(80, rsi_sell + 5)
         
         # 生成信号
         if latest['rsi'] <= rsi_buy:
@@ -234,7 +303,7 @@ def get_market_context():
         }
 
 def execute_trade(symbol, action, qty=None, force_trade=False):
-    """执行交易"""
+    """Execute a trade with improved quantity handling"""
     logger.info(f"尝试执行交易: {symbol} {action} {qty}股")
     
     if action == "持有":
@@ -242,26 +311,53 @@ def execute_trade(symbol, action, qty=None, force_trade=False):
         return None
     
     try:
-        # 获取API客户端
+        # Get API client
         api = get_api_client()
         
-        # 检查市场是否开放
+        # Check if market is open
         clock = api.get_clock()
         if not clock.is_open:
             logger.warning("市场已关闭，无法交易")
             return None
         
-        # 获取账户信息
+        # Get account information
         account = api.get_account()
+        buying_power = float(account.buying_power)
         logger.info(f"当前账户状态: {account.status}")
-        logger.info(f"可用资金: ${float(account.buying_power):.2f}")
+        logger.info(f"可用资金: ${buying_power:.2f}")
         
-        # 验证交易数量
+        # Calculate quantity if not provided
         if qty is None or qty <= 0:
-            logger.error(f"无效的交易数量: {qty}")
-            return None
+            if action == "买入":
+                # Get latest price
+                latest_quote = api.get_latest_quote(symbol)
+                price = float(latest_quote.ap) if hasattr(latest_quote, 'ap') else None
+                
+                if price is None or price <= 0:
+                    logger.error(f"无法获取{symbol}的有效价格")
+                    return None
+                
+                # Use 5% of buying power for each position
+                position_value = buying_power * 0.05
+                qty = position_value / price
+                
+                # Ensure minimum quantity
+                if qty < 0.01:  # For fractional shares
+                    logger.warning(f"计算的交易数量过小: {qty}, 使用最小数量0.01")
+                    qty = 0.01
+                    
+                logger.info(f"自动计算买入数量: {qty} 股 {symbol}")
+            else:
+                # For selling, get current position
+                try:
+                    position = api.get_position(symbol)
+                    qty = float(position.qty)
+                    logger.info(f"卖出全部持仓: {qty} 股 {symbol}")
+                except Exception as e:
+                    logger.error(f"获取{symbol}持仓失败: {str(e)}")
+                    return None
         
-        # 执行订单
+        # Execute order
         side = "buy" if action == "买入" else "sell"
         try:
             order = api.submit_order(
