@@ -2,12 +2,13 @@ version: '3'
 
 services:
   trading-system:
+    platform: linux/amd64  # 指定平台为x86以避免ARM兼容性问题
     build: .
     container_name: trading-system
     restart: always
     environment:
       - DOCKER_ENVIRONMENT=true
-      - ALPACA_PAPER=false
+      - ALPACA_PAPER=false  # 设置为 false 表示实盘交易
       - ALPACA_PAPER_API_KEY=${ALPACA_PAPER_API_KEY}
       - ALPACA_PAPER_API_SECRET=${ALPACA_PAPER_API_SECRET}
       - ALPACA_LIVE_API_KEY=${ALPACA_LIVE_API_KEY}
@@ -18,34 +19,33 @@ services:
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
       - MYSQL_QUANT_DB=${MYSQL_QUANT_DB}
+      - TZ=America/Los_Angeles
+      - RISK_PERCENT=0.02
+      - MAX_POSITIONS=5
+      - STOP_LOSS_PERCENT=0.05
+      - TRAILING_STOP_PERCENT=0.02
+      - MAX_DRAWDOWN_LIMIT=-0.15
     volumes:
       - ./data:/app/data
       - ./models:/app/models
       - ./logs:/app/logs
     depends_on:
-      mysql:
-        condition: service_healthy
+      - mysql
 
   mysql:
+    platform: linux/amd64  # 指定平台为x86以避免ARM兼容性问题
     image: mysql:8.0
     container_name: trading-mysql
     restart: always
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_PASSWORD}
       - MYSQL_DATABASE=${MYSQL_QUANT_DB}
-      - MYSQL_USER=quant_user      # Changed from root
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-    command: --default-authentication-plugin=mysql_native_password
+      - TZ=America/Los_Angeles
     volumes:
       - mysql-data:/var/lib/mysql
     ports:
       - "3306:3306"
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uquant_user", "-p${MYSQL_PASSWORD}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+    command: --default-authentication-plugin=mysql_native_password
 
 volumes:
   mysql-data:

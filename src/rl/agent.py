@@ -274,9 +274,11 @@ def train_agent(data, model_path=None, episodes=50, window_size=10, initial_bala
     # 创建环境
     env = TradingEnvironment(data, initial_balance=initial_balance, window_size=window_size)
     
-    # 获取状态大小
+    # 获取状态大小（使用实际的特征数量）
     state_size = env.observation_space.shape[0]
     action_size = env.action_space.n
+    
+    logger.info(f"创建agent，状态维度: {state_size}, 动作维度: {action_size}")
     
     # 创建或加载代理
     if model_path and os.path.exists(model_path):
@@ -284,7 +286,7 @@ def train_agent(data, model_path=None, episodes=50, window_size=10, initial_bala
         if agent is None:
             logger.warning(f"加载模型失败，将创建新模型")
             agent = DQNAgent(state_size=state_size, action_size=action_size, 
-                            gamma=gamma, epsilon_decay=epsilon_decay, batch_size=batch_size)
+                           gamma=gamma, epsilon_decay=epsilon_decay, batch_size=batch_size)
     else:
         agent = DQNAgent(state_size=state_size, action_size=action_size, 
                         gamma=gamma, epsilon_decay=epsilon_decay, batch_size=batch_size)
@@ -372,6 +374,13 @@ def predict_action(model_path, state, explore=False):
         
         if agent is None:
             logger.error("加载模型失败，无法预测")
+            return 1  # 默认持有
+            
+        # 验证输入维度
+        expected_shape = agent.state_size
+        actual_shape = state.shape[0]
+        if expected_shape != actual_shape:
+            logger.error(f"状态维度不匹配: 期望 {expected_shape}, 实际 {actual_shape}")
             return 1  # 默认持有
         
         # 预测动作

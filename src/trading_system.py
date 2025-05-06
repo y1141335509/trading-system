@@ -30,183 +30,119 @@ from .utils.database import create_tables_if_not_exist, save_to_mysql
 # 设置日志
 logger = logging.getLogger(__name__)
 
-# Define a larger watchlist of stocks
-WATCHLIST = [
-    # Large cap tech (stable growth)
-    'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'NVDA', 'TSLA', 
-    
-    # Financial sector
-    'JPM', 'BAC', 'GS', 'MS', 'V', 'MA',
-    
-    # Healthcare
-    'JNJ', 'PFE', 'UNH', 'ABBV', 'MRK',
-    
-    # Consumer
-    'WMT', 'PG', 'KO', 'PEP', 'COST', 'HD',
-    
-    # ETFs for stability
-    'SPY', 'QQQ', 'IWM', 'VTI', 'XLK'
-]
-
 def hybrid_trading_decision(symbol, context, data=None, ml_model=None, ml_scaler=None, rl_model_path=None):
     """
     综合使用规则、机器学习和强化学习的交易决策
-    
-    参数:
-        symbol (str): 股票代码
-        context (dict): 市场上下文
-        data (DataFrame, optional): 股票数据
-        ml_model: 机器学习模型
-        ml_scaler: 特征缩放器
-        rl_model_path (str, optional): 强化学习模型路径
-        
-    返回:
-        str: 决策 ("买入", "卖出", "持有")
     """
-    if data is None:
-        data = get_stock_data(symbol)
-    
-    if data is None or len(data) < 20:
-        logger.warning(f"{symbol} 数据不足，无法做出决策")
-        return "持有"
-    
-    # 获取动态阈值
-    trading_params = get_trading_params()
-    rsi_buy = 30  # 默认买入阈值
-    rsi_sell = 70  # 默认卖出阈值
-    
-    # 根据市场状态调整阈值
-    if context.get('market_regime') == 'bull':
-        rsi_buy += 10  # 牛市提高买入阈值
-        rsi_sell += 10  # 牛市提高卖出阈值
-    elif context.get('market_regime') == 'bear':
-        rsi_buy -= 10  # 熊市降低买入阈值
-        rsi_sell -= 10  # 熊市降低卖出阈值
-    
-    # 根据VIX调整阈值
-    if context.get('vix_level') == 'high':
-        rsi_buy = max(15, rsi_buy - 10)  # 高波动降低买入阈值
-    elif context.get('vix_level') == 'low':
-        rsi_sell = min(85, rsi_sell + 5)  # 低波动提高卖出阈值
-    
-    # 计算技术指标
-    if 'rsi' not in data.columns:
-        data = calculate_technical_indicators(data)
-    
-    # 获取最新指标
-    latest = data.iloc[-1]
-    current_rsi = latest['rsi']
-    
-    logger.info(f"{symbol} 最新RSI: {current_rsi:.2f}")
-    logger.info(f"动态RSI阈值 - 买入: {rsi_buy}, 卖出: {rsi_sell}")
-    
-    # 检查是否已持有该股票
-    api = get_api_client()
-    has_position = False
-    position_qty = 0
-    
     try:
-        position = api.get_position(symbol)
-        has_position = True
-        position_qty = float(position.qty)
-        logger.info(f"当前持有 {position_qty} 股 {symbol}")
-    except Exception:
-        logger.info(f"当前未持有 {symbol}")
-    
-    # 1. 规则信号
-    rule_signal = None
-    if current_rsi <= rsi_buy:
-        rule_signal = "买入"
-    elif current_rsi >= rsi_sell:
-        rule_signal = "卖出"
-    else:
-        rule_signal = "持有"
-    
-    # 2. 机器学习信号
-    ml_signal = None
-    if ml_model is not None and ml_scaler is not None:
+        if data is None:
+            data = get_stock_data(symbol)
+        
+        if data is None or len(data) < 20:
+            logger.warning(f"{symbol} 数据不足，无法做出决策")
+            return "持有"
+        
+        # 计算技术指标
+        data = calculate_technical_indicators(data)
+        if data is None:
+            logger.error(f"{symbol} 技术指标计算失败")
+            return "持有"
+            
+        # 获取最新数据
+        latest = data.iloc[-1]
+        
+        # 1. 规则信号
+        rule_signal = calculate_rule_signal(latest, context)
+        logger.info(f"{symbol} 规则信号: {rule_signal}")
+        
+        # 2. 机器学习信号
+        ml_signal = "持有"
+        if ml_model is not None and ml_scaler is not None:
+            try:
+                from .ml.predict import predict_proba
+                prob_up = predict_proba(data.iloc[-1:], ml_model, ml_scaler)
+                logger.info(f"{symbol} ML预测上涨概率: {prob_up:.3f}")
+                
+                if prob_up > 0.65:
+                    ml_signal = "买入"
+                elif prob_up < 0.35:
+                    ml_signal = "卖出"
+            except Exception as e:
+                logger.error(f"ML预测失败: {str(e)}")
+        
+        # 3. 检查当前持仓
+        api = get_api_client()
+        has_position = False
         try:
-            from .ml.predict import predict_proba
+            position = api.get_position(symbol)
+            has_position = True
+            logger.info(f"当前持有 {position.qty} 股 {symbol}")
+        except Exception:
+            logger.info(f"当前未持有 {symbol}")
+        
+        # 4. 综合决策
+        signals = [rule_signal, ml_signal]
+        buy_count = signals.count("买入")
+        sell_count = signals.count("卖出")
+        
+        # 输出信号汇总
+        logger.info(f"{symbol} 信号汇总 - 规则: {rule_signal}, ML: {ml_signal}")
+        
+        # 根据市场状态调整决策
+        if context['market_regime'] == 'bear' and not has_position:
+            logger.info("熊市状态，避免新开仓")
+            return "持有"
             
-            # 准备特征
-            features = data.iloc[-1:].copy()
+        if context['vix_level'] == 'high' and not has_position:
+            logger.info("市场波动性高，避免新开仓")
+            return "持有"
+        
+        # 最终决策
+        if buy_count >= 1 and not has_position:
+            logger.info(f"{symbol} 产生买入信号")
+            return "买入"
+        elif sell_count >= 1 and has_position:
+            logger.info(f"{symbol} 产生卖出信号")
+            return "卖出"
+        else:
+            return "持有"
             
-            # 预测上涨概率
-            prob_up = predict_proba(features, ml_model, ml_scaler)
+    except Exception as e:
+        logger.error(f"交易决策失败: {str(e)}")
+        return "持有"
+
+def calculate_rule_signal(latest, context):
+    """计算基于规则的交易信号"""
+    try:
+        # 动态阈值设置
+        rsi_buy = 30
+        rsi_sell = 70
+        
+        # 根据市场状态调整阈值
+        if context['market_regime'] == 'bull':
+            rsi_buy += 10
+            rsi_sell += 10
+        elif context['market_regime'] == 'bear':
+            rsi_buy -= 10
+            rsi_sell -= 10
+        
+        # 波动率调整
+        if context['vix_level'] == 'high':
+            rsi_buy = max(15, rsi_buy - 10)
+        elif context['vix_level'] == 'low':
+            rsi_sell = min(85, rsi_sell + 5)
+        
+        # 生成信号
+        if latest['rsi'] <= rsi_buy:
+            return "买入"
+        elif latest['rsi'] >= rsi_sell:
+            return "卖出"
+        else:
+            return "持有"
             
-            if isinstance(prob_up, (list, np.ndarray)) and len(prob_up) > 0:
-                prob_up = prob_up[0]
-            
-            logger.info(f"机器学习预测上涨概率: {prob_up:.2f}")
-            
-            if prob_up > 0.65:
-                ml_signal = "买入"
-            elif prob_up < 0.35:
-                ml_signal = "卖出"
-            else:
-                ml_signal = "持有"
-                
-        except Exception as e:
-            logger.error(f"机器学习预测失败: {str(e)}")
-            ml_signal = "持有"  # 失败时默认持有
-    
-    # 3. 强化学习信号
-    rl_signal = None
-    if rl_model_path is not None:
-        try:
-            # 使用强化学习做出决策
-            model_dir = get_data_paths()['model_dir']
-            full_model_path = os.path.join(model_dir, f"{symbol}_rl_model.h5")
-            
-            # 如果强化学习模型存在，使用它做出决策
-            if os.path.exists(full_model_path):
-                action = rl_decision(symbol, data, full_model_path)
-                
-                if action == 2:  # 买入
-                    rl_signal = "买入"
-                elif action == 0:  # 卖出
-                    rl_signal = "卖出"
-                else:  # 持有
-                    rl_signal = "持有"
-                
-                logger.info(f"强化学习建议: {rl_signal}")
-            else:
-                logger.warning(f"{symbol}的强化学习模型不存在")
-                
-        except Exception as e:
-            logger.error(f"强化学习预测失败: {str(e)}")
-            rl_signal = "持有"  # 失败时默认持有
-    
-    # 综合决策
-    signals = [rule_signal]
-    if ml_signal:
-        signals.append(ml_signal)
-    if rl_signal:
-        signals.append(rl_signal)
-    
-    # 简单多数投票
-    buy_count = signals.count("买入")
-    sell_count = signals.count("卖出")
-    hold_count = signals.count("持有")
-    
-    # 输出信号汇总
-    signal_summary = f"规则信号: {rule_signal}"
-    if ml_signal:
-        signal_summary += f", 机器学习信号: {ml_signal}"
-    if rl_signal:
-        signal_summary += f", 强化学习信号: {rl_signal}"
-    logger.info(signal_summary)
-    
-    # 确定最终决策
-    if buy_count > sell_count and buy_count > hold_count and not has_position:
-        final_decision = "买入"
-    elif sell_count > buy_count and sell_count > hold_count and has_position:
-        final_decision = "卖出"
-    else:
-        final_decision = "持有"
-    
-    logger.info(f"最终决策: {final_decision}")
-    return final_decision
+    except Exception as e:
+        logger.error(f"规则信号计算失败: {str(e)}")
+        return "持有"
 
 def get_market_context():
     """
@@ -267,112 +203,53 @@ def get_market_context():
             'timestamp': datetime.now()
         }
 
-def execute_trade(symbol, action, qty=None, force_trade=True):
-    """执行交易操作"""
-    logger.info(f"开始执行交易: {symbol} {action}")
+def execute_trade(symbol, action, qty=None, force_trade=False):
+    """执行交易"""
+    logger.info(f"尝试执行交易: {symbol} {action} {qty}股")
     
     if action == "持有":
         logger.info(f"{symbol}: 保持当前仓位")
         return None
     
     try:
-        # 转换操作类型
-        side = "buy" if action == "买入" else "sell"
-        
-        # 获取交易参数
-        trading_params = get_trading_params()
-        risk_percent = trading_params['risk_percent']
-        
-        # 如果没有指定数量，计算适合的数量
-        if qty is None:
-            # 为调试方便，设置一个极小值
-            if force_trade and side == "buy":
-                qty = 1  # 强制买入1股
-                logger.info(f"强制买入模式: 设置数量为1股")
-            else:
-                try:
-                    api = get_api_client()
-                    account = api.get_account()
-                    account_value = float(account.portfolio_value)
-                    
-                    if side == "buy":
-                        # 获取最新价格
-                        last_quote = api.get_latest_quote(symbol)
-                        price = last_quote.askprice if hasattr(last_quote, 'askprice') else last_quote.latestprice
-                        
-                        # 计算基于风险的数量
-                        risk_amount = account_value * risk_percent
-                        qty = risk_amount / price
-                    else:
-                        # 如果是卖出，获取全部持仓
-                        position = api.get_position(symbol)
-                        qty = float(position.qty)
-                except Exception as e:
-                    logger.error(f"计算交易数量时出错: {str(e)}")
-                    if force_trade and side == "buy":
-                        qty = 1  # 强制买入1股
-                        logger.info(f"强制买入模式: 设置数量为1股")
-                    else:
-                        return None
-        
-        # 执行交易
+        # 获取API客户端
         api = get_api_client()
-        logger.info(f"准备提交订单: {symbol} {side} {qty}股")
         
-        # 为了调试，打印账户状态
+        # 检查市场是否开放
+        clock = api.get_clock()
+        if not clock.is_open:
+            logger.warning("市场已关闭，无法交易")
+            return None
+        
+        # 获取账户信息
+        account = api.get_account()
+        logger.info(f"当前账户状态: {account.status}")
+        logger.info(f"可用资金: ${float(account.buying_power):.2f}")
+        
+        # 验证交易数量
+        if qty is None or qty <= 0:
+            logger.error(f"无效的交易数量: {qty}")
+            return None
+        
+        # 执行订单
+        side = "buy" if action == "买入" else "sell"
         try:
-            account = api.get_account()
-            logger.info(f"账户状态: {account.status}, 现金: ${account.cash}, 投资组合价值: ${account.portfolio_value}")
+            order = api.submit_order(
+                symbol=symbol,
+                qty=qty,
+                side=side,
+                type='market',
+                time_in_force='day'
+            )
+            logger.info(f"订单提交成功: {order.id}")
+            return order
+            
         except Exception as e:
-            logger.error(f"获取账户状态失败: {str(e)}")
-        
-        # 提交订单
-        order = api.submit_order(
-            symbol=symbol,
-            qty=qty,
-            side=side,
-            type='market',
-            time_in_force='day'
-        )
-        
-        logger.info(f"{action} {qty} 股 {symbol}, 订单ID: {order.id}")
-        
-        # 如果是买入，设置止损
-        if side == "buy":
-            # 等待订单成交
-            time.sleep(2)
-            try:
-                order_status = api.get_order(order.id)
-                
-                if order_status.status == 'filled':
-                    stop_loss_percent = trading_params['stop_loss_percent']
-                    set_stop_loss(symbol, stop_percent=stop_loss_percent)
-            except Exception as e:
-                logger.error(f"设置止损失败: {str(e)}")
-        
-        # 发送通知
-        send_notification(
-            f"{action} {qty} 股 {symbol} @ {datetime.now().strftime('%H:%M:%S')}",
-            title="交易执行成功"
-        )
-        
-        return {
-            'symbol': symbol,
-            'action': action,
-            'qty': qty,
-            'order_id': order.id,
-            'timestamp': datetime.now().isoformat()
-        }
-        
+            logger.error(f"订单提交失败: {str(e)}")
+            return None
+            
     except Exception as e:
-        logger.error(f"执行{symbol}的{action}交易失败: {str(e)}")
-        
-        # 发送错误通知
-        send_notification(
-            f"交易失败: {symbol} {action} - {str(e)}",
-            title="交易错误"
-        )
-        
+        logger.error(f"交易执行失败: {str(e)}")
         return None
 
 def run_intelligent_trading_system(symbols=None, schedule_retrain_enabled=True, use_short_term=True):
@@ -392,20 +269,26 @@ def run_intelligent_trading_system(symbols=None, schedule_retrain_enabled=True, 
     # 如果没有提供股票列表，使用扩展的观察列表
     if symbols is None:
         symbols = [
-            # Large cap tech (stable growth)
-            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'NVDA', 'TSLA', 
-            
-            # Financial sector
-            'JPM', 'BAC', 'GS', 'MS', 'V', 'MA',
-            
-            # Healthcare
-            'JNJ', 'PFE', 'UNH', 'ABBV', 'MRK',
-            
-            # Consumer
-            'WMT', 'PG', 'KO', 'PEP', 'COST', 'HD',
-            
-            # ETFs for stability
-            'SPY', 'QQQ', 'IWM', 'VTI', 'XLK'
+            # 大型科技股 (高增长潜力)
+            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'AMD', 'INTC', 'AVGO',
+            # AI和半导体 (未来趋势)
+            'ARM', 'ASML', 'TSM', 'MU', 'QCOM', 'AMAT', 'KLAC', 'LRCX',
+            # 金融科技 (支付和金融服务)
+            'V', 'MA', 'JPM', 'BAC', 'GS', 'MS', 'PYPL', 'SQ', 'COIN',
+            # 云计算和软件
+            'CRM', 'ADBE', 'NOW', 'WDAY', 'SNOW', 'NET', 'DDOG',
+            # 生物科技和医疗保健
+            'LLY', 'JNJ', 'PFE', 'MRNA', 'REGN', 'ISRG', 'GILD', 'AMGN',
+            # 消费和零售
+            'COST', 'WMT', 'TGT', 'HD', 'LOW', 'MCD', 'SBUX', 'NKE',
+            # 工业和能源
+            'CAT', 'DE', 'BA', 'LMT', 'XOM', 'CVX', 'EOG', 'SLB',
+            # 电动车和新能源
+            'TSLA', 'RIVN', 'LCID', 'NIO', 'CHPT', 'ENPH', 'SEDG',
+            # 元宇宙和游戏
+            'META', 'RBLX', 'U', 'TTWO', 'EA', 'ATVI',
+            # ETFs (提供多样化)
+            'SPY', 'QQQ', 'ARKK', 'SOXX', 'SMH', 'XLK', 'XLF', 'XLE'
         ]
     
     # 检查账户状态
@@ -607,10 +490,28 @@ def schedule_retrain(symbols=None):
     # 如果没有提供股票列表，使用默认列表
     if symbols is None:
         symbols = [
-            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 
-            'META', 'TSLA', 'JPM', 'V', 'PG'
+            # 大型科技股 (高增长潜力)
+            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'AMD', 'INTC', 'AVGO',
+            # AI和半导体 (未来趋势)
+            'ARM', 'ASML', 'TSM', 'MU', 'QCOM', 'AMAT', 'KLAC', 'LRCX',
+            # 金融科技 (支付和金融服务)
+            'V', 'MA', 'JPM', 'BAC', 'GS', 'MS', 'PYPL', 'SQ', 'COIN',
+            # 云计算和软件
+            'CRM', 'ADBE', 'NOW', 'WDAY', 'SNOW', 'NET', 'DDOG',
+            # 生物科技和医疗保健
+            'LLY', 'JNJ', 'PFE', 'MRNA', 'REGN', 'ISRG', 'GILD', 'AMGN',
+            # 消费和零售
+            'COST', 'WMT', 'TGT', 'HD', 'LOW', 'MCD', 'SBUX', 'NKE',
+            # 工业和能源
+            'CAT', 'DE', 'BA', 'LMT', 'XOM', 'CVX', 'EOG', 'SLB',
+            # 电动车和新能源
+            'TSLA', 'RIVN', 'LCID', 'NIO', 'CHPT', 'ENPH', 'SEDG',
+            # 元宇宙和游戏
+            'META', 'RBLX', 'U', 'TTWO', 'EA', 'ATVI',
+            # ETFs (提供多样化)
+            'SPY', 'QQQ', 'ARKK', 'SOXX', 'SMH', 'XLK', 'XLF', 'XLE'
         ]
-    
+
     for symbol in symbols:
         logger.info(f"\n重新训练 {symbol} 的模型...")
         
@@ -674,8 +575,26 @@ def monitor_market(symbols=None, interval_minutes=15):
     # 如果没有提供股票列表，使用默认列表
     if symbols is None:
         symbols = [
-            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 
-            'META', 'TSLA', 'JPM', 'V', 'PG'
+            # 大型科技股 (高增长潜力)
+            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'AMD', 'INTC', 'AVGO',
+            # AI和半导体 (未来趋势)
+            'ARM', 'ASML', 'TSM', 'MU', 'QCOM', 'AMAT', 'KLAC', 'LRCX',
+            # 金融科技 (支付和金融服务)
+            'V', 'MA', 'JPM', 'BAC', 'GS', 'MS', 'PYPL', 'SQ', 'COIN',
+            # 云计算和软件
+            'CRM', 'ADBE', 'NOW', 'WDAY', 'SNOW', 'NET', 'DDOG',
+            # 生物科技和医疗保健
+            'LLY', 'JNJ', 'PFE', 'MRNA', 'REGN', 'ISRG', 'GILD', 'AMGN',
+            # 消费和零售
+            'COST', 'WMT', 'TGT', 'HD', 'LOW', 'MCD', 'SBUX', 'NKE',
+            # 工业和能源
+            'CAT', 'DE', 'BA', 'LMT', 'XOM', 'CVX', 'EOG', 'SLB',
+            # 电动车和新能源
+            'TSLA', 'RIVN', 'LCID', 'NIO', 'CHPT', 'ENPH', 'SEDG',
+            # 元宇宙和游戏
+            'META', 'RBLX', 'U', 'TTWO', 'EA', 'ATVI',
+            # ETFs (提供多样化)
+            'SPY', 'QQQ', 'ARKK', 'SOXX', 'SMH', 'XLK', 'XLF', 'XLE'
         ]
     
     # 获取市场上下文
@@ -763,8 +682,26 @@ def setup_scheduled_monitoring(symbols=None, interval_minutes=15):
     # 如果没有提供股票列表，使用默认列表
     if symbols is None:
         symbols = [
-            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 
-            'META', 'TSLA', 'JPM', 'V', 'PG'
+            # 大型科技股 (高增长潜力)
+            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'AMD', 'INTC', 'AVGO',
+            # AI和半导体 (未来趋势)
+            'ARM', 'ASML', 'TSM', 'MU', 'QCOM', 'AMAT', 'KLAC', 'LRCX',
+            # 金融科技 (支付和金融服务)
+            'V', 'MA', 'JPM', 'BAC', 'GS', 'MS', 'PYPL', 'SQ', 'COIN',
+            # 云计算和软件
+            'CRM', 'ADBE', 'NOW', 'WDAY', 'SNOW', 'NET', 'DDOG',
+            # 生物科技和医疗保健
+            'LLY', 'JNJ', 'PFE', 'MRNA', 'REGN', 'ISRG', 'GILD', 'AMGN',
+            # 消费和零售
+            'COST', 'WMT', 'TGT', 'HD', 'LOW', 'MCD', 'SBUX', 'NKE',
+            # 工业和能源
+            'CAT', 'DE', 'BA', 'LMT', 'XOM', 'CVX', 'EOG', 'SLB',
+            # 电动车和新能源
+            'TSLA', 'RIVN', 'LCID', 'NIO', 'CHPT', 'ENPH', 'SEDG',
+            # 元宇宙和游戏
+            'META', 'RBLX', 'U', 'TTWO', 'EA', 'ATVI',
+            # ETFs (提供多样化)
+            'SPY', 'QQQ', 'ARKK', 'SOXX', 'SMH', 'XLK', 'XLF', 'XLE'
         ]
     
     logger.info(f"设置定时监控（每{interval_minutes}分钟）: {', '.join(symbols)}")
@@ -871,10 +808,26 @@ def main():
         
         # 设置要监控的股票
         symbols = [
-            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 
-            'META', 'TSLA', 'JPM', 'V', 'PG',
-            'HD', 'UNH', 'BAC', 'XOM', 'JNJ',
-            'PG', 'MA', 'AVGO', 'WMT', 'CVX'
+            # 大型科技股 (高增长潜力)
+            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'AMD', 'INTC', 'AVGO',
+            # AI和半导体 (未来趋势)
+            'ARM', 'ASML', 'TSM', 'MU', 'QCOM', 'AMAT', 'KLAC', 'LRCX',
+            # 金融科技 (支付和金融服务)
+            'V', 'MA', 'JPM', 'BAC', 'GS', 'MS', 'PYPL', 'SQ', 'COIN',
+            # 云计算和软件
+            'CRM', 'ADBE', 'NOW', 'WDAY', 'SNOW', 'NET', 'DDOG',
+            # 生物科技和医疗保健
+            'LLY', 'JNJ', 'PFE', 'MRNA', 'REGN', 'ISRG', 'GILD', 'AMGN',
+            # 消费和零售
+            'COST', 'WMT', 'TGT', 'HD', 'LOW', 'MCD', 'SBUX', 'NKE',
+            # 工业和能源
+            'CAT', 'DE', 'BA', 'LMT', 'XOM', 'CVX', 'EOG', 'SLB',
+            # 电动车和新能源
+            'TSLA', 'RIVN', 'LCID', 'NIO', 'CHPT', 'ENPH', 'SEDG',
+            # 元宇宙和游戏
+            'META', 'RBLX', 'U', 'TTWO', 'EA', 'ATVI',
+            # ETFs (提供多样化)
+            'SPY', 'QQQ', 'ARKK', 'SOXX', 'SMH', 'XLK', 'XLF', 'XLE'
         ]
         
         # 创建健康检查文件
@@ -932,9 +885,28 @@ def main():
         mode = input("选择运行模式 (1: 训练模型, 2: 单次交易分析, 3: 持续监控, 4: 性能分析, 5: 投资组合管理, 6: 卖出评估, 7: 模型评估, 8: 盈亏分析): ")
         
         symbols = [
-            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 
-            'META', 'TSLA', 'JPM', 'V', 'PG'
+            # 大型科技股 (高增长潜力)
+            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'AMD', 'INTC', 'AVGO',
+            # AI和半导体 (未来趋势)
+            'ARM', 'ASML', 'TSM', 'MU', 'QCOM', 'AMAT', 'KLAC', 'LRCX',
+            # 金融科技 (支付和金融服务)
+            'V', 'MA', 'JPM', 'BAC', 'GS', 'MS', 'PYPL', 'SQ', 'COIN',
+            # 云计算和软件
+            'CRM', 'ADBE', 'NOW', 'WDAY', 'SNOW', 'NET', 'DDOG',
+            # 生物科技和医疗保健
+            'LLY', 'JNJ', 'PFE', 'MRNA', 'REGN', 'ISRG', 'GILD', 'AMGN',
+            # 消费和零售
+            'COST', 'WMT', 'TGT', 'HD', 'LOW', 'MCD', 'SBUX', 'NKE',
+            # 工业和能源
+            'CAT', 'DE', 'BA', 'LMT', 'XOM', 'CVX', 'EOG', 'SLB',
+            # 电动车和新能源
+            'TSLA', 'RIVN', 'LCID', 'NIO', 'CHPT', 'ENPH', 'SEDG',
+            # 元宇宙和游戏
+            'META', 'RBLX', 'U', 'TTWO', 'EA', 'ATVI',
+            # ETFs (提供多样化)
+            'SPY', 'QQQ', 'ARKK', 'SOXX', 'SMH', 'XLK', 'XLF', 'XLE'
         ]
+    
         
         if mode == '1':
             # 训练模型

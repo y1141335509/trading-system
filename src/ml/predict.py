@@ -11,22 +11,15 @@ logger = logging.getLogger(__name__)
 def predict(data, model, scaler=None, threshold=0.5, feature_names=None):
     """
     使用模型进行预测
-    
-    参数:
-        data (DataFrame): 要预测的数据
-        model: 训练好的模型
-        scaler: 特征缩放器（可选）
-        threshold (float): 决策阈值
-        feature_names (list): 特征名列表，如果为None则使用data的所有列
-        
-    返回:
-        array: 预测结果
     """
     try:
         if model is None:
             logger.error("模型无效，无法预测")
             return None
             
+        # 首先计算所有必要的技术指标
+        data = calculate_missing_indicators(data.copy())
+        
         # 准备特征
         X = prepare_prediction_data(data, scaler, feature_names)
         if X is None:
@@ -34,7 +27,6 @@ def predict(data, model, scaler=None, threshold=0.5, feature_names=None):
             
         # 进行预测
         if hasattr(model, 'predict_proba'):
-            # 如果模型支持概率预测，使用阈值
             probas = model.predict_proba(X)
             if probas.shape[1] >= 2:
                 preds = (probas[:, 1] >= threshold).astype(int)
@@ -51,72 +43,84 @@ def predict(data, model, scaler=None, threshold=0.5, feature_names=None):
 
 def predict_proba(features, model, scaler):
     """
-    修改预测函数以确保特征列名匹配
+    预测价格变动概率，自动计算缺失的技术指标
     """
     try:
+        # 确保数据为DataFrame类型
+        if not isinstance(features, pd.DataFrame):
+            features = pd.DataFrame(features)
+            
+        # 计算缺失的技术指标
+        features = calculate_missing_indicators(features)
+        
         # 定义预期的特征列
         expected_features = [
-            'open', 'high', 'low', 'close', 'volume',
             'rsi', 'macd', 'macd_signal', 'macd_hist',
-            'bb_upper', 'bb_middle', 'bb_lower', 'atr'
+            'bb_upper', 'bb_middle', 'bb_lower', 'atr',
+            'ma10', 'ma50', 'trend_5d', 'trend_10d', 'trend_20d',
+            'ma10_ratio', 'ma50_ratio', 'volatility'
         ]
         
-        # 确保输入特征包含所有需要的列
-        if not all(col in features.columns for col in expected_features):
-            missing_features = [col for col in expected_features if col not in features.columns]
-            raise ValueError(f"Missing features: {missing_features}")
-            
-        # 只选择需要的特征列
-        features = features[expected_features].copy()
+        # 确保所有特征都存在
+        missing_features = [f for f in expected_features if f not in features.columns]
+        if missing_features:
+            logger.error(f"缺少特征: {missing_features}")
+            return 0.5  # 返回中性预测
+        
+        # 选择特征并处理缺失值
+        X = features[expected_features].copy()
+        X = X.fillna(method='ffill').fillna(method='bfill')
         
         # 标准化特征
         if scaler is not None:
-            features_scaled = scaler.transform(features)
-        else:
-            features_scaled = features.values
-            
-        # 预测
-        probabilities = model.predict_proba(features_scaled)
-        return probabilities[0][1]  # 返回上涨的概率
+            X = scaler.transform(X)
         
+        # 预测概率
+        try:
+            proba = model.predict_proba(X)
+            logger.info(f"预测概率: {proba[0][1]:.3f}")
+            return proba[0][1]  # 返回上涨概率
+        except Exception as e:
+            logger.error(f"模型预测失败: {str(e)}")
+            return 0.5
+            
     except Exception as e:
-        logging.error(f"准备预测数据失败: {str(e)}")
-        return 0.5  # 返回中性预测
+        logger.error(f"预测过程出错: {str(e)}")
+        return 0.5
 
 def prepare_prediction_data(data, scaler=None, feature_names=None):
     """
     准备预测用的数据
-    
-    参数:
-        data (DataFrame): 原始数据
-        scaler: 特征缩放器
-        feature_names (list): 特征名列表
-        
-    返回:
-        array: 准备好的特征数据
     """
     try:
         if data is None or len(data) == 0:
             logger.error("预测数据为空")
             return None
-            
-        # 如果提供了特征名列表，只使用这些特征
-        if feature_names is not None:
-            # 检查所有特征是否存在
-            missing_features = [f for f in feature_names if f not in data.columns]
-            if missing_features:
-                logger.warning(f"缺少以下特征: {missing_features}")
-                
-            # 只使用可用的特征
-            available_features = [f for f in feature_names if f in data.columns]
-            X = data[available_features].copy()
-        else:
-            X = data.copy()
-            
-        # 应用缩放（如果提供了缩放器）
+        
+        # 确保所有必要的特征都存在
+        required_features = [
+            'open', 'high', 'low', 'close', 'volume',
+            'macd', 'macd_signal', 'macd_hist',
+            'bb_upper', 'bb_middle', 'bb_lower',
+            'rsi'
+        ]
+        
+        # 如果没有提供特征名列表，使用所有必要特征
+        if feature_names is None:
+            feature_names = required_features
+        
+        # 检查是否所有必要特征都存在
+        missing_features = [f for f in feature_names if f not in data.columns]
+        if missing_features:
+            raise ValueError(f"缺少必要特征: {missing_features}")
+        
+        # 选择特征
+        X = data[feature_names].copy()
+        
+        # 应用缩放
         if scaler is not None:
             X = scaler.transform(X)
-            
+        
         return X
         
     except Exception as e:
@@ -160,3 +164,49 @@ def predict_with_symbol(symbol, data, model_dir='models', feature_names=None):
     except Exception as e:
         logger.error(f"使用{symbol}的模型预测失败: {str(e)}")
         return None
+
+def calculate_missing_indicators(df):
+    """
+    计算缺失的技术指标
+    """
+    try:
+        # 确保DataFrame包含必要的列
+        required_columns = ['open', 'high', 'low', 'close', 'volume']
+        if not all(col in df.columns for col in required_columns):
+            missing = [col for col in required_columns if col not in df.columns]
+            raise ValueError(f"缺少基础数据列: {missing}")
+        
+        # 计算MACD
+        if not all(col in df.columns for col in ['macd', 'macd_signal', 'macd_hist']):
+            exp1 = df['close'].ewm(span=12, adjust=False).mean()
+            exp2 = df['close'].ewm(span=26, adjust=False).mean()
+            df['macd'] = exp1 - exp2
+            df['macd_signal'] = df['macd'].ewm(span=9, adjust=False).mean()
+            df['macd_hist'] = df['macd'] - df['macd_signal']
+        
+        # 计算布林带
+        if not all(col in df.columns for col in ['bb_upper', 'bb_middle', 'bb_lower']):
+            df['bb_middle'] = df['close'].rolling(window=20).mean()
+            rolling_std = df['close'].rolling(window=20).std()
+            df['bb_upper'] = df['bb_middle'] + (rolling_std * 2)
+            df['bb_lower'] = df['bb_middle'] - (rolling_std * 2)
+        
+        # 计算RSI（如果需要）
+        if 'rsi' not in df.columns:
+            delta = df['close'].diff()
+            gain = delta.where(delta > 0, 0)
+            loss = -delta.where(delta < 0, 0)
+            avg_gain = gain.rolling(window=14).mean()
+            avg_loss = loss.rolling(window=14).mean()
+            rs = avg_gain / avg_loss
+            df['rsi'] = 100 - (100 / (1 + rs))
+        
+        # 填充NaN值
+        df = df.fillna(method='bfill').fillna(method='ffill')
+        
+        return df
+        
+    except Exception as e:
+        logger.error(f"计算技术指标时出错: {str(e)}")
+        raise
+

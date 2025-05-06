@@ -4,15 +4,55 @@ import pandas as pd
 import numpy as np
 import logging
 
-# 设置日志
+def setup_logger():
+    """设置日志配置"""
+    # 清除之前的处理器
+    root = logging.getLogger()
+    if root.handlers:
+        for handler in root.handlers:
+            root.removeHandler(handler)
+            
+    # 创建新的处理器
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    handler.setFormatter(formatter)
+    
+    # 设置日志级别并添加处理器
+    root.setLevel(logging.INFO)
+    root.addHandler(handler)
+
+# 初始化日志
+setup_logger()
 logger = logging.getLogger(__name__)
 
-def calculate_technical_indicators(data, **kwargs):
+def verify_features(df):
+    """验证特征是否正确计算"""
+    required_features = [
+        'macd', 'macd_signal', 'macd_hist',
+        'bb_upper', 'bb_middle', 'bb_lower',
+        'rsi', 'atr', 'ma10', 'ma50',
+        'trend_5d', 'trend_10d', 'trend_20d',
+        'ma10_ratio', 'ma50_ratio', 'volatility'
+    ]
+    
+    missing = [f for f in required_features if f not in df.columns]
+    if missing:
+        logger.error(f"缺失的必需特征: {missing}")
+        return False
+        
+    logger.info("特征验证通过")
+    return True
+
+def calculate_technical_indicators(data, use_short_term=True):
     """
     计算各种技术指标
     
     参数:
-        data (DataFrame): 原始价格数据
+        data (DataFrame): 包含 OHLCV 数据的 DataFrame
+        use_short_term (bool): 是否使用短期指标
         
     返回:
         DataFrame: 添加了技术指标的数据
@@ -25,44 +65,74 @@ def calculate_technical_indicators(data, **kwargs):
     df = data.copy()
     
     try:
-        # 1. RSI - 相对强弱指标 (14天)
-        df['rsi'] = calculate_rsi(df, window=14)
+        # 验证必要的列是否存在
+        required_columns = ['open', 'high', 'low', 'close', 'volume']
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        if missing_columns:
+            raise ValueError(f"缺少必要的列: {missing_columns}")
         
-        # 2. MACD - 移动平均线收敛/发散
-        macd_line, signal_line, macd_hist = calculate_macd(df)
+        # RSI计算
+        delta = df['close'].diff()
+        gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+        rs = gain / loss
+        df['rsi'] = 100 - (100 / (1 + rs))
+        
+        # MACD计算
+        exp1 = df['close'].ewm(span=12, adjust=False).mean()
+        exp2 = df['close'].ewm(span=26, adjust=False).mean()
+        macd_line = exp1 - exp2
+        signal_line = macd_line.ewm(span=9, adjust=False).mean()
         df['macd'] = macd_line
-        df['signal'] = signal_line
-        df['hist'] = macd_hist
+        df['macd_signal'] = signal_line
+        df['macd_hist'] = macd_line - signal_line
         
-        # 3. 布林带
-        df['ma20'], df['upper_band'], df['lower_band'] = calculate_bollinger_bands(df)
+        # 布林带计算
+        df['bb_middle'] = df['close'].rolling(window=20).mean()
+        std = df['close'].rolling(window=20).std()
+        df['bb_upper'] = df['bb_middle'] + (std * 2)
+        df['bb_lower'] = df['bb_middle'] - (std * 2)
         
-        # 4. ATR - 平均真实范围
-        df['atr'] = calculate_atr(df)
+        # ATR计算
+        high_low = df['high'] - df['low']
+        high_close = abs(df['high'] - df['close'].shift())
+        low_close = abs(df['low'] - df['close'].shift())
+        ranges = pd.concat([high_low, high_close, low_close], axis=1)
+        true_range = ranges.max(axis=1)
+        df['atr'] = true_range.rolling(window=14).mean()
         
-        # 5. 移动平均线
-        df['ma10'] = df['close'].rolling(window=10).mean()
-        df['ma50'] = df['close'].rolling(window=50).mean()
+        # 移动平均线
+        df['ma10'] = df['close'].rolling(window=10, min_periods=1).mean()
+        df['ma50'] = df['close'].rolling(window=50, min_periods=1).mean()
         
-        # 6. 趋势指标
+        # 趋势指标
         df['trend_5d'] = df['close'].pct_change(periods=5)
         df['trend_10d'] = df['close'].pct_change(periods=10)
         df['trend_20d'] = df['close'].pct_change(periods=20)
         
-        # 7. 移动均线比率
-        df['ma10_ratio'] = df['close'] / df['ma10']
-        df['ma50_ratio'] = df['close'] / df['ma50']
+        # 移动均线比率
+        df['ma10_ratio'] = df['close'] / df['ma10'].replace(0, np.nan)
+        df['ma50_ratio'] = df['close'] / df['ma50'].replace(0, np.nan)
         
-        # 8. 波动率
+        # 波动率
         df['volatility'] = df['close'].pct_change().rolling(window=20).std() * np.sqrt(252)
         
-        logger.info("技术指标计算完成")
+        # 处理无穷大和NaN值
+        df = df.replace([np.inf, -np.inf], np.nan)
+        df = df.fillna(method='ffill').fillna(method='bfill')
+        
         return df
-    
+        
     except Exception as e:
         logger.error(f"计算技术指标失败: {str(e)}")
+        if 'df' in locals():
+            available_features = "\n".join([
+                "当前可用的特征列:",
+                *[f"- {col}" for col in sorted(df.columns)]
+            ])
+            logger.info(available_features)
         return data
-
+    
 def calculate_rsi(data, window=14):
     """计算RSI指标"""
     delta = data['close'].diff()
@@ -102,7 +172,7 @@ def calculate_bollinger_bands(data, window=20, num_std=2):
     upper_band = rolling_mean + (rolling_std * num_std)
     lower_band = rolling_mean - (rolling_std * num_std)
     
-    return rolling_mean, upper_band, lower_band
+    return rolling_mean, upper_band, lower_band  # 修复了返回值
 
 def calculate_atr(data, window=14):
     """计算平均真实范围(ATR)指标"""
@@ -117,43 +187,37 @@ def calculate_atr(data, window=14):
     return atr
 
 def prepare_features(data, target_horizon=1, drop_na=True):
-    """
-    准备机器学习特征
-    
-    参数:
-        data (DataFrame): 包含技术指标的数据
-        target_horizon (int): 目标预测周期（天数）
-        drop_na (bool): 是否删除包含NaN的行
-        
-    返回:
-        tuple: (X, y) 特征和目标变量
-    """
+    """准备机器学习特征"""
     if data is None or len(data) < target_horizon + 10:
         logger.warning("数据不足，无法准备特征")
         return None, None
     
     try:
-        # 创建副本，避免修改原始数据
         df = data.copy()
         
-        # 创建目标变量 - 未来n天的涨跌
+        # 创建目标变量
         df['future_return'] = df['close'].pct_change(periods=target_horizon).shift(-target_horizon)
         df['target'] = np.where(df['future_return'] > 0, 1, 0)
         
-        # 选择特征
+        # 修改特征列表，使用与calculate_technical_indicators一致的名称
         features = [
-            'rsi', 'macd', 'signal', 'hist', 
-            'ma20', 'atr', 'trend_5d', 'trend_10d', 'trend_20d',
-            'ma10_ratio', 'ma50_ratio', 'volatility'
+            'rsi',                  # RSI
+            'macd', 'macd_signal', 'macd_hist',  # MACD相关指标
+            'bb_upper', 'bb_middle', 'bb_lower',  # 布林带
+            'atr',                  # ATR
+            'ma10', 'ma50',        # 移动平均线
+            'trend_5d', 'trend_10d', 'trend_20d',  # 趋势指标
+            'ma10_ratio', 'ma50_ratio',  # 移动均线比率
+            'volatility'           # 波动率
         ]
         
         # 检查所有特征是否存在
         available_features = [f for f in features if f in df.columns]
         
         if len(available_features) < len(features):
-            missing = [f for f in features if f not in available_features]
-            logger.warning(f"缺少以下特征: {missing}")
-            
+            missing = [f for f in features if f not in df.columns]
+            logger.error(f"缺少以下特征: {missing}")
+        
         # 删除包含NaN的行
         if drop_na:
             df = df.dropna(subset=available_features + ['target'])
@@ -166,7 +230,7 @@ def prepare_features(data, target_horizon=1, drop_na=True):
         return X, y
     
     except Exception as e:
-        logger.error(f"准备特征失败: {str(e)}")
+        logger.error(f"准备预测数据失败: {str(e)}")
         return None, None
 
 def normalize_data(X_train, X_test=None):

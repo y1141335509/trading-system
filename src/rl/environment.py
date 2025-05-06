@@ -17,53 +17,52 @@ class TradingEnvironment(gym.Env):
     奖励基于交易结果和价格变动。
     """
     
-    def __init__(self, data, initial_balance=10000.0, transaction_cost=0.001, window_size=10):
+    def __init__(self, data, initial_balance=10000, window_size=10):
         """
         初始化交易环境
         
         参数:
-            data (DataFrame): 包含股票数据的DataFrame，需要包含"close"等价格信息
-            initial_balance (float): 初始账户余额
-            transaction_cost (float): 交易成本比例
+            data (DataFrame): 股票数据，包含OHLCV和技术指标
+            initial_balance (float): 初始资金
             window_size (int): 观察窗口大小
         """
         super(TradingEnvironment, self).__init__()
         
-        # 保存传入的参数
+        # 保存参数
         self.data = data
         self.initial_balance = initial_balance
-        self.transaction_cost = transaction_cost
         self.window_size = window_size
         
-        # 确保数据有足够的特征
-        self._validate_data()
+        # 获取特征数量（所有列除了日期列）
+        self.n_features = len(data.columns)
+        if 'date' in data.columns:
+            self.n_features -= 1
         
-        # 环境状态
-        self.balance = initial_balance
-        self.shares_held = 0
-        self.current_step = 0
-        self.current_price = 0
-        self.last_trade_tick = 0
-        self.total_steps = len(data) - 1
+        # 定义动作空间 (0=卖出, 1=持有, 2=买入)
+        self.action_space = gym.spaces.Discrete(3)
         
-        # 定义动作空间：0=卖出, 1=持有, 2=买入
-        self.action_space = spaces.Discrete(3)
-        
-        # 定义观察空间
-        # [持仓量, 账户余额, 归一化技术指标...]
-        obs_dim = 2 + self._get_observation_dimension()  # 持仓量 + 账户余额 + 特征维度
-        
-        # 正规化后的值应该在一个合理范围内
-        self.observation_space = spaces.Box(
-            low=-np.ones(obs_dim) * 10,  # 合理的负范围
-            high=np.ones(obs_dim) * 10,  # 合理的正范围
+        # 定义观察空间 (使用实际特征数量)
+        self.observation_space = gym.spaces.Box(
+            low=-np.inf,
+            high=np.inf,
+            shape=(self.n_features,),
             dtype=np.float32
         )
         
-        # 跟踪交易历史
+        # 初始化交易相关的属性
+        self.balance = initial_balance
+        self.shares_held = 0
+        self.current_step = 0
         self.trades = []
-        self.portfolio_values = []
-    
+        
+        # 跟踪最高资产价值，用于计算回撤
+        self.max_net_worth = initial_balance
+        
+        # 其他可能需要的变量
+        self.last_trade_tick = 0
+        self.last_trade_price = 0
+        self.episode_orders = []
+        
     def _validate_data(self):
         """验证数据是否包含必要的列和足够的行"""
         required_columns = ['close']

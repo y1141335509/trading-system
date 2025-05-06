@@ -18,6 +18,7 @@ docker-compose -f docker-compose.live.yml build --no-cache
 docker-compose -f docker-compose.live.yml up -d
 # Watch logs
 docker-compose -f docker-compose.live.yml logs -f
+docker logs -f trading-system
 ############### 每日实际交易使用 ###############
 ```
 
