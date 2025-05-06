@@ -68,7 +68,7 @@ def calculate_multi_factor_signal(data, context):
         
         # 1. RSI Signal
         rsi_signal = "持有"
-        if latest['rsi'] <= 35:
+        if latest['rsi'] <= 33:
             rsi_signal = "买入"
         elif latest['rsi'] >= 65:
             rsi_signal = "卖出"
@@ -77,39 +77,39 @@ def calculate_multi_factor_signal(data, context):
         macd_signal = "持有"
         if latest['macd_hist'] > 0 and latest['macd_hist'] > data['macd_hist'].iloc[-2]:
             macd_signal = "买入"  # MACD histogram is positive and increasing
-        elif latest['macd_hist'] < 0 and latest['macd_hist'] < data['macd_hist'].iloc[-2]:
+        elif latest['macd_hist'] < -0.1:
             macd_signal = "卖出"  # MACD histogram is negative and decreasing
         
         # 3. Bollinger Band Signal
         bb_signal = "持有"
         if latest['close'] < latest['bb_lower']:
             bb_signal = "买入"  # Price below lower Bollinger Band
-        elif latest['close'] > latest['bb_upper']:
+        elif latest['close'] > (latest['bb_middle'] + (latest['bb_upper'] - latest['bb_middle']) * 0.7):  # 不必到上轨，接近上轨就考虑卖出
             bb_signal = "卖出"  # Price above upper Bollinger Band
         
-        # 4. Moving Average Signal
+        # 4. 移动平均信号 - 放宽卖出标准
         ma_signal = "持有"
         if latest['close'] > latest['ma50'] and latest['ma10'] > latest['ma50']:
-            ma_signal = "买入"  # Price and short-term MA above long-term MA
-        elif latest['close'] < latest['ma50'] and latest['ma10'] < latest['ma50']:
-            ma_signal = "卖出"  # Price and short-term MA below long-term MA
+            ma_signal = "买入"  # 价格和短期MA高于长期MA
+        elif latest['close'] < latest['ma10']:  # 仅突破短期均线就考虑卖出
+            ma_signal = "卖出"
             
-        # 5. Price Trend Signal
+        # 5. 价格趋势信号 - 放宽卖出标准
         trend_signal = "持有"
         if latest['trend_5d'] > 0 and latest['trend_10d'] > 0:
-            trend_signal = "买入"  # Short and medium-term trends positive
-        elif latest['trend_5d'] < 0 and latest['trend_10d'] < 0:
-            trend_signal = "卖出"  # Short and medium-term trends negative
+            trend_signal = "买入"  # 短期和中期趋势向上
+        elif latest['trend_5d'] < 0:  # 只要短期趋势转负就考虑卖出
+            trend_signal = "卖出"
         
-        # Count buy and sell signals
+        # 计算买入和卖出信号数量
         signals = [rsi_signal, macd_signal, bb_signal, ma_signal, trend_signal]
         buy_count = signals.count("买入")
         sell_count = signals.count("卖出")
         
-        # Generate final signal based on count
+        # 基于计数生成最终信号 - 更宽松的标准
         if buy_count >= 2 and buy_count > sell_count:
             final_signal = "买入"
-        elif sell_count >= 2 and sell_count > buy_count:
+        elif sell_count >= 2:  # 移除了"sell_count > buy_count"条件，使卖出更容易触发
             final_signal = "卖出"
         else:
             final_signal = "持有"
@@ -152,14 +152,14 @@ def hybrid_trading_decision(symbol, context, data=None, ml_model=None, ml_scaler
                 logger.info(f"{symbol} ML预测上涨概率: {prob_up:.3f}")
                 
                 # Lower threshold for buy signal from 0.65 to 0.55
-                if prob_up > 0.55:
+                if prob_up > 0.65:
                     ml_signal = "买入"
-                elif prob_up < 0.40:  # Slightly more conservative for sell
+                elif prob_up < 0.43:  # Slightly more conservative for sell
                     ml_signal = "卖出"
             except Exception as e:
                 logger.error(f"ML预测失败: {str(e)}")
         
-        # 3. 强化学习信号 (if available)
+        # 3. 强化学习信号 (如果可用)
         rl_signal = "持有"
         if rl_model_path and os.path.exists(rl_model_path):
             try:
@@ -176,31 +176,31 @@ def hybrid_trading_decision(symbol, context, data=None, ml_model=None, ml_scaler
         # 4. 检查当前持仓
         api = get_api_client()
         has_position = False
+        position_value = 0
         try:
             position = api.get_position(symbol)
             has_position = True
-            logger.info(f"当前持有 {position.qty} 股 {symbol}")
+            position_value = float(position.market_value)
+            logger.info(f"当前持有 {position.qty} 股 {symbol}，市值 ${position_value:.2f}")
         except Exception:
             logger.info(f"当前未持有 {symbol}")
         
-        # 5. 综合决策 (more lenient for buy signals)
+        # 5. 综合决策 (对买入和卖出都更宽松)
         signals = [rule_signal, ml_signal, rl_signal]
         buy_count = signals.count("买入")
         sell_count = signals.count("卖出")
         
-        # Output signal summary
+        # 输出信号汇总
         logger.info(f"{symbol} 信号汇总 - 规则: {rule_signal}, ML: {ml_signal}, RL: {rl_signal}")
         
-        # Less strict market regime filtering
-        if context['market_regime'] == 'bear' and context['vix_level'] == 'high' and not has_position:
-            logger.info("熊市+高波动状态，避免新开仓")
-            return "持有"
+        # 市场条件筛选 - 只在极端情况下限制
+        extreme_market = context['market_regime'] == 'bear' and context['vix_level'] == 'high'
         
-        # Modified decision logic - only need one buy signal if not in extreme market conditions
-        if (buy_count >= 1 and sell_count == 0) and not has_position:
+        # 修改后的决策逻辑 - 买入和卖出都只需要1个信号
+        if (buy_count >= 1) and not has_position and not extreme_market:
             logger.info(f"{symbol} 产生买入信号")
             return "买入"
-        elif (sell_count >= 1 and buy_count == 0) and has_position:
+        elif (sell_count >= 1) and has_position:
             logger.info(f"{symbol} 产生卖出信号")
             return "卖出"
         else:
@@ -214,7 +214,7 @@ def calculate_rule_signal(latest, context):
     """计算基于规则的交易信号"""
     try:
         # 动态阈值设置
-        rsi_buy = 35
+        rsi_buy = 33
         rsi_sell = 65
         
         # 根据市场状态调整阈值
@@ -241,6 +241,45 @@ def calculate_rule_signal(latest, context):
             
     except Exception as e:
         logger.error(f"规则信号计算失败: {str(e)}")
+        return "持有"
+
+def check_profit_taking(symbol, data=None):
+    """
+    检查是否应该锁定利润的独立函数
+    """
+    try:
+        api = get_api_client()
+        
+        # 获取当前持仓
+        position = api.get_position(symbol)
+        current_price = float(position.current_price)
+        entry_price = float(position.avg_entry_price)
+        
+        # 计算当前盈利百分比
+        profit_percent = (current_price - entry_price) / entry_price * 100
+        
+        # 盈利锁定标准 (基于盈利百分比的分级锁定)
+        if profit_percent >= 20:
+            # 超过20%盈利，考虑锁定大部分利润
+            logger.info(f"{symbol} 盈利已达 {profit_percent:.2f}% (>= 20%)，建议锁定利润")
+            return "卖出"
+        elif profit_percent >= 10:
+            # 10-20%盈利，可以考虑锁定部分利润
+            
+            # 如果有其他卖出信号，更倾向于卖出
+            if data is not None:
+                latest = data.iloc[-1]
+                if latest['rsi'] > 60 or latest['close'] > latest['bb_upper']:
+                    logger.info(f"{symbol} 盈利已达 {profit_percent:.2f}% (>= 10%) 且技术指标显示超买，建议锁定利润")
+                    return "卖出"
+            
+            logger.info(f"{symbol} 盈利已达 {profit_percent:.2f}% (>= 10%)，考虑部分锁定利润")
+            return "持有"  # 继续持有，但会设置更严格的移动止损
+        else:
+            return "持有"
+            
+    except Exception as e:
+        logger.error(f"检查利润锁定失败: {str(e)}")
         return "持有"
 
 def get_market_context():
@@ -450,7 +489,7 @@ def run_intelligent_trading_system(symbols=None, schedule_retrain_enabled=True, 
         if not os.path.exists(rl_model_path):
             rl_model_path = None
         
-        # 修改决策调用
+        # 获取交易决策 (使用更新后的宽松标准)
         decision = hybrid_trading_decision(
             symbol, 
             context,
@@ -460,27 +499,50 @@ def run_intelligent_trading_system(symbols=None, schedule_retrain_enabled=True, 
             rl_model_path=rl_model_path
         )
         
+        # 额外检查：对于已持有的股票，检查是否应该锁定利润
+        if decision == "持有" and symbol in current_positions:
+            try:
+                # 如果持有，检查是否应该锁定利润
+                profit_decision = check_profit_taking(symbol, data)
+                if profit_decision == "卖出":
+                    decision = profit_decision
+                    logger.info(f"{symbol} 原决定为持有，但利润锁定检查后改为: {decision}")
+            except Exception as e:
+                logger.error(f"检查{symbol}利润锁定时出错: {str(e)}")
+        
         # 确定是否执行交易
-        # 1. 如果是买入信号，只有在活跃列表中且当前持仓数量小于最大持仓数量时才买入
+        # 1. 如果是买入信号
         if decision == "买入":
             logger.info(f"买入信号: {symbol}")
             
             # 强制执行交易进行测试
             force_trade = True  # 在测试时设置为True，正式环境改为False
             
-            if force_trade or (symbol in active_symbols and len(current_positions) < max_positions):
+            # 更宽松的买入条件：活跃股票列表更大，不严格限制持仓数量
+            # 在测试模式下，最大持仓数量适当放宽(max_positions * 1.5)
+            effective_max_positions = int(max_positions * 1.5) if force_trade else max_positions
+            
+            if force_trade or (len(current_positions) < effective_max_positions):
                 logger.info(f"{symbol} 符合买入条件，执行交易")
-                result = execute_trade(symbol, decision, force_trade=force_trade)
+                
+                # 如果是新仓位，使用增强版的execute_trade函数自动计算数量
+                qty = None  # 让系统自动计算购买数量
+                
+                result = execute_trade(symbol, decision, qty=qty, force_trade=force_trade)
                 if result:
                     results.append(result)
                     if symbol not in current_positions:
                         current_positions.append(symbol)
+                    
+                    # 立即设置止损
+                    try:
+                        # 获取更保守的止损百分比
+                        stop_percent = float(trading_params.get('STOP_LOSS_PERCENT', 0.08))
+                        set_stop_loss(symbol, stop_percent=stop_percent)
+                    except Exception as e:
+                        logger.error(f"为{symbol}设置初始止损时出错: {str(e)}")
             else:
-                reason = ""
-                if symbol not in active_symbols:
-                    reason = "不在活跃交易列表中"
-                else:
-                    reason = f"当前持仓数量({len(current_positions)})已达最大限制({max_positions})"
+                reason = f"当前持仓数量({len(current_positions)})已达最大限制({effective_max_positions})"
                 logger.info(f"{symbol} 有买入信号但{reason}，跳过交易")
                 
         # 2. 如果是卖出信号，只对当前持有的股票执行
@@ -494,18 +556,17 @@ def run_intelligent_trading_system(symbols=None, schedule_retrain_enabled=True, 
             else:
                 logger.info(f"{symbol} 有卖出信号但当前未持有，跳过交易")
         
-        # 3. 持有信号不执行交易
+        # 3. 持有信号不执行交易，但更新止损
         else:
             logger.info(f"{symbol} 持有信号，无需交易")
         
-        # 更新现有持仓的止损
+        # 更新现有持仓的止损 - 使用改进的止损策略
         if symbol in current_positions:
             try:
-                # 使用更严格的止损设置
-                stop_percent = float(trading_params.get('STOP_LOSS_PERCENT', 0.03))
-                trail_percent = float(trading_params.get('TRAILING_STOP_PERCENT', 0.02))
+                # 使用较为激进的移动止损参数
+                trail_percent = float(trading_params.get('TRAILING_STOP_PERCENT', 0.05))
                 
-                # 更新止损
+                # 更新止损 - 使用修改后的更敏感的移动止损逻辑
                 update_stop_loss(symbol, trail_percent=trail_percent)
             except Exception as e:
                 logger.error(f"更新{symbol}止损时出错: {str(e)}")
@@ -515,7 +576,13 @@ def run_intelligent_trading_system(symbols=None, schedule_retrain_enabled=True, 
     try:
         positions = api.list_positions()
         for position in positions:
-            print(f"{position.symbol}: {position.qty} 股, 均价: ${position.avg_entry_price}, 市值: ${position.market_value}")
+            # 计算当前盈亏百分比
+            entry_price = float(position.avg_entry_price)
+            current_price = float(position.current_price)
+            profit_pct = ((current_price / entry_price) - 1) * 100
+            
+            print(f"{position.symbol}: {position.qty} 股, 均价: ${entry_price:.2f}, "
+                  f"现价: ${current_price:.2f}, 盈亏: {profit_pct:.2f}%, 市值: ${position.market_value:.2f}")
     except Exception as e:
         logger.error(f"获取持仓失败: {str(e)}")
     
@@ -526,7 +593,7 @@ def run_intelligent_trading_system(symbols=None, schedule_retrain_enabled=True, 
     # 设置定期任务
     if schedule_retrain_enabled:
         # 每周一凌晨2点重新训练模型
-        schedule.every().monday.at("02:00").do(schedule_retrain, symbols=symbols)
+        schedule.every().monday.at("02:00").do(schedule_retrain, symbols=active_symbols)
         logger.info("已设置每周一凌晨2点重新训练模型")
         
         # 设置每日健康检查
@@ -537,15 +604,15 @@ def run_intelligent_trading_system(symbols=None, schedule_retrain_enabled=True, 
         schedule.every().day.at("16:30").do(generate_daily_report)
         logger.info("已设置每日16:30生成报告")
         
-        # 根据是否使用短期策略设置不同的监控频率
+        # 根据是否使用短期策略设置不同的监控频率 - 更频繁的监控
         if use_short_term:
-            # 短期策略需要更频繁监控
-            schedule.every(5).minutes.do(monitor_market, symbols=symbols, interval_minutes=5)
-            logger.info("已设置每5分钟监控市场（短期策略）")
+            # 短期策略需要更频繁监控 - 从5分钟减少到3分钟
+            schedule.every(3).minutes.do(monitor_market, symbols=symbols, interval_minutes=3)
+            logger.info("已设置每3分钟监控市场（短期策略）")
         else:
-            # 标准策略监控频率
-            schedule.every(15).minutes.do(monitor_market, symbols=symbols, interval_minutes=15)
-            logger.info("已设置每15分钟监控市场（标准策略）")
+            # 标准策略监控频率 - 从15分钟减少到10分钟
+            schedule.every(10).minutes.do(monitor_market, symbols=symbols, interval_minutes=10)
+            logger.info("已设置每10分钟监控市场（标准策略）")
     
     logger.info("交易系统运行完成")
     return True

@@ -155,7 +155,7 @@ def set_stop_loss(symbol, stop_percent=0.05):
 
 def update_stop_loss(symbol, trail_percent=0.05):
     """
-    更新止损价格为移动止损
+    更新止损价格为移动止损，并更早触发
     
     参数:
         symbol (str): 股票代码
@@ -177,8 +177,8 @@ def update_stop_loss(symbol, trail_percent=0.05):
         if current_price > entry_price:
             profit_percent = (current_price - entry_price) / entry_price
             
-            # 如果盈利超过10%，则设置移动止损
-            if profit_percent > 0.1:
+            # 降低移动止损触发阈值从10%到5%
+            if profit_percent > 0.05:
                 # 取消现有止损单
                 existing_orders = api.list_orders(status='open', limit=100)
                 for order in existing_orders:
@@ -186,12 +186,17 @@ def update_stop_loss(symbol, trail_percent=0.05):
                         api.cancel_order(order.id)
                         logger.info(f"已取消 {symbol} 的现有止损单")
                 
-                # 设置新的移动止损
-                stop_price = round(current_price * (1 - trail_percent), 2)
+                # 计算新止损价格 - 根据盈利水平调整保护幅度
+                if profit_percent > 0.20:  # 超过20%利润，保护更多
+                    stop_price = max(current_price * (1 - trail_percent * 0.5), entry_price * 1.10)  # 确保至少锁定10%利润
+                    logger.info(f"{symbol} 盈利超过20%，设置更紧的移动止损以保护利润")
+                elif profit_percent > 0.10:  # 10-20%利润区间
+                    stop_price = max(current_price * (1 - trail_percent * 0.7), entry_price * 1.05)  # 确保至少锁定5%利润
+                    logger.info(f"{symbol} 盈利超过10%，设置中等程度的移动止损")
+                else:  # 5-10%利润区间
+                    stop_price = max(current_price * (1 - trail_percent), entry_price * 1.01)  # 确保至少锁定1%利润
                 
-                # 确保新止损价格高于原始买入价
-                stop_price = max(stop_price, entry_price * 1.02)  # 至少保证2%利润
-                
+                # 提交新的止损单
                 order = api.submit_order(
                     symbol=symbol,
                     qty=qty,
@@ -201,7 +206,7 @@ def update_stop_loss(symbol, trail_percent=0.05):
                     stop_price=stop_price
                 )
                 
-                logger.info(f"已为 {symbol} 更新移动止损单，止损价: ${stop_price}")
+                logger.info(f"已为 {symbol} 更新移动止损单，止损价: ${stop_price:.2f}")
                 
                 # 记录交易日志
                 from .construction import log_portfolio_transaction
@@ -216,7 +221,7 @@ def update_stop_loss(symbol, trail_percent=0.05):
                 }
                 
             else:
-                logger.info(f"{symbol} 盈利 {profit_percent:.2%}，未达到移动止损触发阈值(10%)")
+                logger.info(f"{symbol} 盈利 {profit_percent:.2%}，尚未达到移动止损触发阈值(5%)")
                 return {
                     'symbol': symbol,
                     'status': 'unchanged',
