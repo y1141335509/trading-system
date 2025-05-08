@@ -60,56 +60,73 @@ SYMBOLS = [
     'SPY', 'QQQ', 'IWM', 'VTI', 'XLK', 'XLF', 'XLV', 'XLP', 'XLE', 'ARKK', 'VGT', 'VOO', 'VUG', 'VYM', 'SOXX'
 ]
 
+# 修改4: 调整calculate_multi_factor_signal函数中的各项指标阈值
 def calculate_multi_factor_signal(data, context):
-    """Generate trading signals based on multiple technical factors"""
+    """Generate trading signals based on multiple technical factors with adjusted thresholds"""
     try:
         # Get latest data point
         latest = data.iloc[-1]
         
-        # 1. RSI Signal
+        # 1. RSI Signal - 更敏感的卖出阈值
         rsi_signal = "持有"
-        if latest['rsi'] <= 33:
-            rsi_signal = "买入"
-        elif latest['rsi'] >= 65:
-            rsi_signal = "卖出"
+        if 'rsi' in latest:
+            if latest['rsi'] <= 33:
+                rsi_signal = "买入"
+            elif latest['rsi'] >= 62:  # 降低RSI卖出阈值，更早发出卖出信号
+                rsi_signal = "卖出"
         
-        # 2. MACD Signal
+        # 2. MACD Signal - 更敏感的卖出条件
         macd_signal = "持有"
-        if latest['macd_hist'] > 0 and latest['macd_hist'] > data['macd_hist'].iloc[-2]:
-            macd_signal = "买入"  # MACD histogram is positive and increasing
-        elif latest['macd_hist'] < -0.1:
-            macd_signal = "卖出"  # MACD histogram is negative and decreasing
+        if 'macd_hist' in latest and 'macd_hist' in data.columns:
+            # 如果有前一天数据，检查柱状图是否开始下降
+            if len(data) > 1:
+                prev_hist = data['macd_hist'].iloc[-2]
+                curr_hist = latest['macd_hist']
+                
+                if curr_hist > 0 and curr_hist < prev_hist * 0.8:  # 柱状图明显下降
+                    macd_signal = "卖出"  
+                elif curr_hist > 0 and curr_hist > prev_hist * 1.2:  # 柱状图明显上升
+                    macd_signal = "买入"
+                elif curr_hist < -0.05:  # 柱状图为负且绝对值变大
+                    macd_signal = "卖出"
         
-        # 3. Bollinger Band Signal
+        # 3. Bollinger Band Signal - 更敏感的卖出条件
         bb_signal = "持有"
-        if latest['close'] < latest['bb_lower']:
-            bb_signal = "买入"  # Price below lower Bollinger Band
-        elif latest['close'] > (latest['bb_middle'] + (latest['bb_upper'] - latest['bb_middle']) * 0.7):  # 不必到上轨，接近上轨就考虑卖出
-            bb_signal = "卖出"  # Price above upper Bollinger Band
+        if all(k in latest for k in ['close', 'bb_lower', 'bb_middle', 'bb_upper']):
+            if latest['close'] < latest['bb_lower']:
+                bb_signal = "买入"  # 价格低于布林带下轨
+            # 调整为更敏感的卖出条件：价格超过布林带中轨以上60%处
+            elif latest['close'] > (latest['bb_middle'] + (latest['bb_upper'] - latest['bb_middle']) * 0.6):
+                bb_signal = "卖出"
         
-        # 4. 移动平均信号 - 放宽卖出标准
+        # 4. 移动平均信号 - 更敏感的卖出条件
         ma_signal = "持有"
-        if latest['close'] > latest['ma50'] and latest['ma10'] > latest['ma50']:
-            ma_signal = "买入"  # 价格和短期MA高于长期MA
-        elif latest['close'] < latest['ma10']:  # 仅突破短期均线就考虑卖出
-            ma_signal = "卖出"
+        if all(k in latest for k in ['close', 'ma10', 'ma50']):
+            if latest['close'] > latest['ma50'] and latest['ma10'] > latest['ma50']:
+                ma_signal = "买入"  # 价格和短期MA高于长期MA
+            elif latest['close'] < latest['ma10'] * 0.98:  # 已跌破短期均线且下跌明显
+                ma_signal = "卖出"
             
-        # 5. 价格趋势信号 - 放宽卖出标准
+        # 5. 价格趋势信号 - 更敏感的卖出条件
         trend_signal = "持有"
-        if latest['trend_5d'] > 0 and latest['trend_10d'] > 0:
-            trend_signal = "买入"  # 短期和中期趋势向上
-        elif latest['trend_5d'] < 0:  # 只要短期趋势转负就考虑卖出
-            trend_signal = "卖出"
+        if 'trend_5d' in latest and 'trend_10d' in latest:
+            if latest['trend_5d'] > 0 and latest['trend_10d'] > 0:
+                trend_signal = "买入"  # 短期和中期趋势向上
+            elif latest['trend_5d'] < -0.01:  # 短期趋势加速下跌
+                trend_signal = "卖出"
         
         # 计算买入和卖出信号数量
         signals = [rsi_signal, macd_signal, bb_signal, ma_signal, trend_signal]
         buy_count = signals.count("买入")
         sell_count = signals.count("卖出")
         
-        # 基于计数生成最终信号 - 更宽松的标准
+        # 输出各信号的详情便于调试
+        logger.debug(f"信号详情 - RSI: {rsi_signal}, MACD: {macd_signal}, BB: {bb_signal}, MA: {ma_signal}, 趋势: {trend_signal}")
+        
+        # 基于计数生成最终信号 - 对卖出更敏感
         if buy_count >= 2 and buy_count > sell_count:
             final_signal = "买入"
-        elif sell_count >= 2:  # 移除了"sell_count > buy_count"条件，使卖出更容易触发
+        elif sell_count >= 1:  # 只要有一个卖出信号就考虑卖出，更敏感
             final_signal = "卖出"
         else:
             final_signal = "持有"
@@ -121,9 +138,76 @@ def calculate_multi_factor_signal(data, context):
         logger.error(f"多因子信号计算失败: {str(e)}")
         return "持有"
 
+# 修改1: 增加一个分层卖出的函数
+def calculate_partial_sell_decision(data, symbol, position_info=None):
+    """
+    计算是否应该部分卖出的决策
+    
+    参数:
+        data (DataFrame): 股票数据
+        symbol (str): 股票代码
+        position_info (dict, optional): 持仓信息
+        
+    返回:
+        tuple: (是否部分卖出, 建议卖出比例, 原因)
+    """
+    try:
+        # 获取最新数据点
+        latest = data.iloc[-1]
+        
+        # 初始化卖出理由
+        sell_reasons = []
+        
+        # 检查各个指标是否触发初步卖出信号
+        
+        # 1. RSI超过初级警戒线
+        if 'rsi' in latest and latest['rsi'] >= 65:
+            sell_reasons.append(f"RSI达到{latest['rsi']:.1f}(>65)")
+        
+        # 2. 价格接近布林带上轨
+        if 'bb_upper' in latest and 'close' in latest:
+            upper_ratio = (latest['close'] / latest['bb_upper'])
+            if upper_ratio > 0.95:
+                sell_reasons.append(f"价格接近布林带上轨({upper_ratio:.2f})")
+        
+        # 3. MACD柱状图开始下降
+        if 'macd_hist' in latest and len(data) > 1:
+            prev_hist = data['macd_hist'].iloc[-2]
+            curr_hist = latest['macd_hist']
+            
+            if curr_hist > 0 and curr_hist < prev_hist:
+                sell_reasons.append("MACD柱状图高位回落")
+        
+        # 4. 检查盈利情况
+        if position_info is not None:
+            current_price = latest['close'] if 'close' in latest else None
+            entry_price = position_info.get('entry_price')
+            
+            if current_price and entry_price:
+                profit_percent = (current_price - entry_price) / entry_price * 100
+                
+                # 盈利超过10%考虑部分获利了结
+                if profit_percent >= 10:
+                    sell_reasons.append(f"已盈利{profit_percent:.1f}%(>10%)")
+        
+        # 根据信号数量决定是否部分卖出及比例
+        if len(sell_reasons) >= 1:
+            # 根据信号数量确定卖出比例
+            sell_ratio = min(0.3 * len(sell_reasons), 0.5)  # 最多卖出50%
+            reason_text = "、".join(sell_reasons)
+            
+            return True, sell_ratio, reason_text
+        
+        return False, 0, ""
+        
+    except Exception as e:
+        logger.error(f"部分卖出决策计算失败: {str(e)}")
+        return False, 0, ""
+    
+# 修改2: 改进hybrid_trading_decision函数，加入分层卖出逻辑
 def hybrid_trading_decision(symbol, context, data=None, ml_model=None, ml_scaler=None, rl_model_path=None):
     """
-    Modified hybrid trading decision function with increased sensitivity for buy signals
+    修改后的混合交易决策函数，支持分层卖出策略
     """
     try:
         if data is None:
@@ -139,11 +223,11 @@ def hybrid_trading_decision(symbol, context, data=None, ml_model=None, ml_scaler
             logger.error(f"{symbol} 技术指标计算失败")
             return "持有"
             
-        # 1. 规则信号 (now using multi-factor)
+        # 1. 多因子规则信号
         rule_signal = calculate_multi_factor_signal(data, context)
         logger.info(f"{symbol} 多因子规则信号: {rule_signal}")
         
-        # 2. 机器学习信号 (lower threshold for buy)
+        # 2. 机器学习信号
         ml_signal = "持有"
         if ml_model is not None and ml_scaler is not None:
             try:
@@ -151,15 +235,15 @@ def hybrid_trading_decision(symbol, context, data=None, ml_model=None, ml_scaler
                 prob_up = predict_proba(data.iloc[-1:], ml_model, ml_scaler)
                 logger.info(f"{symbol} ML预测上涨概率: {prob_up:.3f}")
                 
-                # Lower threshold for buy signal from 0.65 to 0.55
-                if prob_up > 0.65:
+                # 调整ML信号阈值: 更敏感的卖出信号但更严格的买入信号
+                if prob_up > 0.67:  # 提高买入阈值
                     ml_signal = "买入"
-                elif prob_up < 0.43:  # Slightly more conservative for sell
+                elif prob_up < 0.45:  # 略微提高卖出阈值，使其不那么敏感
                     ml_signal = "卖出"
             except Exception as e:
                 logger.error(f"ML预测失败: {str(e)}")
         
-        # 3. 强化学习信号 (如果可用)
+        # 3. 强化学习信号
         rl_signal = "持有"
         if rl_model_path and os.path.exists(rl_model_path):
             try:
@@ -177,15 +261,26 @@ def hybrid_trading_decision(symbol, context, data=None, ml_model=None, ml_scaler
         api = get_api_client()
         has_position = False
         position_value = 0
+        position_info = None
+        
         try:
             position = api.get_position(symbol)
             has_position = True
             position_value = float(position.market_value)
+            
+            # 保存持仓信息用于分层卖出决策
+            position_info = {
+                'entry_price': float(position.avg_entry_price),
+                'current_price': float(position.current_price),
+                'qty': float(position.qty),
+                'market_value': position_value
+            }
+            
             logger.info(f"当前持有 {position.qty} 股 {symbol}，市值 ${position_value:.2f}")
         except Exception:
             logger.info(f"当前未持有 {symbol}")
         
-        # 5. 综合决策 (对买入和卖出都更宽松)
+        # 5. 综合决策
         signals = [rule_signal, ml_signal, rl_signal]
         buy_count = signals.count("买入")
         sell_count = signals.count("卖出")
@@ -193,18 +288,38 @@ def hybrid_trading_decision(symbol, context, data=None, ml_model=None, ml_scaler
         # 输出信号汇总
         logger.info(f"{symbol} 信号汇总 - 规则: {rule_signal}, ML: {ml_signal}, RL: {rl_signal}")
         
-        # 市场条件筛选 - 只在极端情况下限制
+        # 市场条件筛选
         extreme_market = context['market_regime'] == 'bear' and context['vix_level'] == 'high'
         
-        # 修改后的决策逻辑 - 买入和卖出都只需要1个信号
+        # --- 修改的决策逻辑开始 ---
+        
+        # 全部卖出条件: 有持仓 + 至少2个卖出信号
+        if (sell_count >= 2) and has_position:
+            logger.info(f"{symbol} 产生完全卖出信号，满足至少2个卖出信号条件")
+            return "卖出"
+            
+        # 部分卖出条件: 有持仓 + 满足部分卖出的技术条件
+        elif has_position:
+            should_partial_sell, sell_ratio, reason = calculate_partial_sell_decision(data, symbol, position_info)
+            
+            if should_partial_sell:
+                # 如果建议部分卖出比例超过80%，可以直接全部卖出
+                if sell_ratio > 0.8:
+                    logger.info(f"{symbol} 部分卖出比例 {sell_ratio:.1%} 过高，转为完全卖出")
+                    return "卖出"
+                    
+                # 否则返回部分卖出的决策，包含比例信息
+                logger.info(f"{symbol} 产生部分卖出信号 {sell_ratio:.1%}，原因: {reason}")
+                return f"部分卖出:{sell_ratio:.2f}"
+        
+        # 买入条件: 无持仓 + 至少1个买入信号 + 非极端市场
         if (buy_count >= 1) and not has_position and not extreme_market:
             logger.info(f"{symbol} 产生买入信号")
             return "买入"
-        elif (sell_count >= 1) and has_position:
-            logger.info(f"{symbol} 产生卖出信号")
-            return "卖出"
-        else:
-            return "持有"
+            
+        # --- 修改的决策逻辑结束 ---
+        
+        return "持有"
             
     except Exception as e:
         logger.error(f"交易决策失败: {str(e)}")
@@ -243,9 +358,10 @@ def calculate_rule_signal(latest, context):
         logger.error(f"规则信号计算失败: {str(e)}")
         return "持有"
 
+# 修改5: 增强check_profit_taking函数，更敏感地锁定利润
 def check_profit_taking(symbol, data=None):
     """
-    检查是否应该锁定利润的独立函数
+    检查是否应该锁定利润的增强版函数
     """
     try:
         api = get_api_client()
@@ -258,29 +374,74 @@ def check_profit_taking(symbol, data=None):
         # 计算当前盈利百分比
         profit_percent = (current_price - entry_price) / entry_price * 100
         
-        # 盈利锁定标准 (基于盈利百分比的分级锁定)
-        if profit_percent >= 20:
-            # 超过20%盈利，考虑锁定大部分利润
-            logger.info(f"{symbol} 盈利已达 {profit_percent:.2f}% (>= 20%)，建议锁定利润")
+        # 盈利锁定标准 (基于盈利百分比的分级锁定) - 降低阈值，更积极锁定利润
+        if profit_percent >= 15:  # 从20%降低到15%
+            # 超过15%盈利，考虑锁定大部分利润
+            logger.info(f"{symbol} 盈利已达 {profit_percent:.2f}% (>= 15%)，建议锁定利润")
             return "卖出"
-        elif profit_percent >= 10:
-            # 10-20%盈利，可以考虑锁定部分利润
+        elif profit_percent >= 8:  # 从10%降低到8%
+            # 8-15%盈利，可以考虑锁定部分利润
             
             # 如果有其他卖出信号，更倾向于卖出
             if data is not None:
                 latest = data.iloc[-1]
-                if latest['rsi'] > 60 or latest['close'] > latest['bb_upper']:
-                    logger.info(f"{symbol} 盈利已达 {profit_percent:.2f}% (>= 10%) 且技术指标显示超买，建议锁定利润")
+                if ('rsi' in latest and latest['rsi'] > 58) or ('close' in latest and 'bb_upper' in latest and latest['close'] > latest['bb_upper'] * 0.95):
+                    logger.info(f"{symbol} 盈利已达 {profit_percent:.2f}% (>= 8%) 且技术指标显示超买，建议锁定利润")
                     return "卖出"
             
-            logger.info(f"{symbol} 盈利已达 {profit_percent:.2f}% (>= 10%)，考虑部分锁定利润")
-            return "持有"  # 继续持有，但会设置更严格的移动止损
-        else:
-            return "持有"
+            logger.info(f"{symbol} 盈利已达 {profit_percent:.2f}% (>= 8%)，考虑部分锁定利润")
+            return "部分卖出:0.40"  # 卖出40%仓位
+        elif profit_percent >= 5:  # 增加一个5%的部分止盈档位
+            if data is not None:
+                latest = data.iloc[-1]
+                # 如果同时有下跌的技术信号，锁定小部分利润
+                if ('rsi' in latest and latest['rsi'] > 65) or ('macd_hist' in latest and latest['macd_hist'] < 0):
+                    logger.info(f"{symbol} 盈利已达 {profit_percent:.2f}% (>= 5%) 且有下跌技术信号，建议部分锁定利润")
+                    return "部分卖出:0.20"  # 卖出20%仓位
+        
+        # 检查是否接近突破支撑位
+        if data is not None and len(data) > 20:
+            latest = data.iloc[-1]
+            if 'close' in latest and 'ma50' in latest:
+                # 如果有任何盈利，且价格接近跌破50日均线，考虑保护利润
+                if profit_percent > 0 and latest['close'] < latest['ma50'] * 1.02:
+                    logger.info(f"{symbol} 有盈利且价格接近跌破50日均线，建议保护利润")
+                    return "部分卖出:0.30"  # 卖出30%仓位
+        
+        return "持有"
             
     except Exception as e:
         logger.error(f"检查利润锁定失败: {str(e)}")
         return "持有"
+
+# 修改6: 在run_intelligent_trading_system函数中更新检查利润锁定的逻辑
+def update_profit_taking_check(decision, symbol, data, current_positions):
+    """
+    增强版的利润锁定检查，与原有交易决策结合
+    
+    参数:
+        decision (str): 原始交易决策
+        symbol (str): 股票代码
+        data (DataFrame): 股票数据
+        current_positions (list): 当前持仓列表
+        
+    返回:
+        str: 更新后的决策
+    """
+    # 如果原决策不是持有，或者当前没有持仓，则保持原决策
+    if decision != "持有" or symbol not in current_positions:
+        return decision
+        
+    # 检查是否应该锁定利润
+    try:
+        profit_decision = check_profit_taking(symbol, data)
+        if profit_decision != "持有":
+            logger.info(f"{symbol} 原决定为持有，但利润锁定检查后改为: {profit_decision}")
+            return profit_decision
+    except Exception as e:
+        logger.error(f"检查{symbol}利润锁定时出错: {str(e)}")
+        
+    return decision
 
 def get_market_context():
     """
@@ -341,9 +502,27 @@ def get_market_context():
             'timestamp': datetime.now()
         }
 
+# 修改3: 修改execute_trade函数，处理部分卖出的情况
 def execute_trade(symbol, action, qty=None, force_trade=False):
-    """Execute a trade with improved quantity handling"""
-    logger.info(f"尝试执行交易: {symbol} {action} {qty}股")
+    """
+    执行交易，支持部分卖出功能
+    """
+    # 检查是否是部分卖出指令
+    is_partial_sell = False
+    sell_ratio = 1.0  # 默认卖出全部
+    
+    if action.startswith("部分卖出:"):
+        is_partial_sell = True
+        # 从指令中解析卖出比例
+        try:
+            sell_ratio = float(action.split(":")[-1])
+            action = "卖出"  # 将动作重设为卖出
+        except:
+            logger.error(f"无法解析部分卖出比例: {action}")
+            sell_ratio = 0.3  # 默认卖出30%
+            action = "卖出"
+    
+    logger.info(f"尝试执行交易: {symbol} {action} " + (f"{sell_ratio:.1%}" if is_partial_sell else "") + (f" {qty}股" if qty else ""))
     
     if action == "持有":
         logger.info(f"{symbol}: 保持当前仓位")
@@ -390,8 +569,15 @@ def execute_trade(symbol, action, qty=None, force_trade=False):
                 # For selling, get current position
                 try:
                     position = api.get_position(symbol)
-                    qty = float(position.qty)
-                    logger.info(f"卖出全部持仓: {qty} 股 {symbol}")
+                    position_qty = float(position.qty)
+                    
+                    # 如果是部分卖出，按比例计算
+                    if is_partial_sell:
+                        qty = position_qty * sell_ratio
+                        logger.info(f"部分卖出{sell_ratio:.1%}仓位: {qty:.6f} 股 {symbol}")
+                    else:
+                        qty = position_qty
+                        logger.info(f"卖出全部持仓: {qty} 股 {symbol}")
                 except Exception as e:
                     logger.error(f"获取{symbol}持仓失败: {str(e)}")
                     return None
@@ -419,7 +605,7 @@ def execute_trade(symbol, action, qty=None, force_trade=False):
 
 def run_intelligent_trading_system(symbols=None, schedule_retrain_enabled=True, use_short_term=True):
     """
-    运行智能交易系统
+    运行智能交易系统 - 修改版本，整合了update_profit_taking_check函数
     
     参数:
         symbols (list, optional): 要交易的股票列表
@@ -489,7 +675,7 @@ def run_intelligent_trading_system(symbols=None, schedule_retrain_enabled=True, 
         if not os.path.exists(rl_model_path):
             rl_model_path = None
         
-        # 获取交易决策 (使用更新后的宽松标准)
+        # 获取交易决策
         decision = hybrid_trading_decision(
             symbol, 
             context,
@@ -498,6 +684,9 @@ def run_intelligent_trading_system(symbols=None, schedule_retrain_enabled=True, 
             ml_scaler=ml_scaler, 
             rl_model_path=rl_model_path
         )
+
+        # 使用增强版的利润锁定检查，与原有交易决策结合
+        decision = update_profit_taking_check(decision, symbol, data, current_positions)
         
         # 额外检查：对于已持有的股票，检查是否应该锁定利润
         if decision == "持有" and symbol in current_positions:
@@ -545,14 +734,17 @@ def run_intelligent_trading_system(symbols=None, schedule_retrain_enabled=True, 
                 reason = f"当前持仓数量({len(current_positions)})已达最大限制({effective_max_positions})"
                 logger.info(f"{symbol} 有买入信号但{reason}，跳过交易")
                 
-        # 2. 如果是卖出信号，只对当前持有的股票执行
-        elif decision == "卖出":
+        # 2. 如果是卖出信号或部分卖出信号
+        elif decision == "卖出" or decision.startswith("部分卖出:"):
             if symbol in current_positions:
-                logger.info(f"{symbol} 符合卖出条件，执行交易")
-                result = execute_trade(symbol, decision)
+                logger.info(f"{symbol} 符合{'部分' if decision.startswith('部分卖出:') else ''}卖出条件，执行交易")
+                result = execute_trade(symbol, decision)  # 修改后的execute_trade支持部分卖出
                 if result:
                     results.append(result)
-                    current_positions.remove(symbol)  # 更新当前持仓列表
+                    
+                    # 如果是完全卖出，从持仓列表中移除
+                    if decision == "卖出":
+                        current_positions.remove(symbol)
             else:
                 logger.info(f"{symbol} 有卖出信号但当前未持有，跳过交易")
         
@@ -560,13 +752,13 @@ def run_intelligent_trading_system(symbols=None, schedule_retrain_enabled=True, 
         else:
             logger.info(f"{symbol} 持有信号，无需交易")
         
-        # 更新现有持仓的止损 - 使用改进的止损策略
+        # 更新现有持仓的止损
         if symbol in current_positions:
             try:
                 # 使用较为激进的移动止损参数
                 trail_percent = float(trading_params.get('TRAILING_STOP_PERCENT', 0.05))
                 
-                # 更新止损 - 使用修改后的更敏感的移动止损逻辑
+                # 更新止损
                 update_stop_loss(symbol, trail_percent=trail_percent)
             except Exception as e:
                 logger.error(f"更新{symbol}止损时出错: {str(e)}")
