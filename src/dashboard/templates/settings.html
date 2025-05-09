@@ -1,0 +1,1517 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统设置 - 交易系统仪表盘</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 font-sans leading-normal tracking-normal">
+    <!-- 导航栏 -->
+    <nav class="bg-white border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        <span class="text-xl font-bold text-blue-600">交易系统仪表盘</span>
+                    </div>
+                    <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                        <a href="./index.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            首页
+                        </a>
+                        <a href="./charts.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            图表
+                        </a>
+                        <a href="./reports.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            报告
+                        </a>
+                        <a href="./settings.html" class="border-blue-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            设置
+                        </a>
+                    </div>
+                </div>
+                <div id="lastUpdated" class="flex items-center text-sm text-gray-500">
+                    上次更新: 正在加载...
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容区域 -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <!-- 设置导航 -->
+        <div class="mb-6">
+            <div class="bg-white shadow-sm sm:rounded-lg">
+                <div class="p-4 border-b border-gray-200">
+                    <ul class="flex space-x-8" id="settingsTabs">
+                        <li>
+                            <a href="#" class="text-blue-600 border-b-2 border-blue-600 pb-2 font-medium" data-tab="tradingSettings">
+                                交易设置
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="text-gray-500 hover:text-gray-700 pb-2 font-medium" data-tab="riskSettings">
+                                风险管理
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="text-gray-500 hover:text-gray-700 pb-2 font-medium" data-tab="notificationSettings">
+                                通知设置
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="text-gray-500 hover:text-gray-700 pb-2 font-medium" data-tab="systemSettings">
+                                系统设置
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 交易设置面板 -->
+        <div id="tradingSettings" class="settings-panel">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- 基本设置卡片 -->
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6 bg-white border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">基本交易设置</h3>
+                        <form id="basicSettingsForm">
+                            <div class="mb-4">
+                                <label for="apiKey" class="block text-sm font-medium text-gray-700">API Key</label>
+                                <input type="password" id="apiKey" name="apiKey" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                <div class="mt-1 text-xs text-gray-500">
+                                    只有在需要更新时才填写，留空保持现有设置。
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="apiSecret" class="block text-sm font-medium text-gray-700">API Secret</label>
+                                <input type="password" id="apiSecret" name="apiSecret" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                <div class="mt-1 text-xs text-gray-500">
+                                    只有在需要更新时才填写，留空保持现有设置。
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="tradingMode" class="block text-sm font-medium text-gray-700">交易模式</label>
+                                <select id="tradingMode" name="tradingMode" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                    <option value="paper">模拟交易</option>
+                                    <option value="live">实盘交易</option>
+                                </select>
+                                <div class="mt-1 text-xs text-gray-500">
+                                    切换到实盘交易前请确保已充分测试您的策略。
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="maxPositions" class="block text-sm font-medium text-gray-700">最大持仓数量</label>
+                                <input type="number" id="maxPositions" name="maxPositions" min="1" max="50" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                            </div>
+                            
+                            <div class="flex items-center justify-end">
+                                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm">
+                                    保存基本设置
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- 投资组合分配卡片 -->
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6 bg-white border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">投资组合分配</h3>
+                        <form id="allocationForm">
+                            <div class="mb-4">
+                                <label for="lowRiskAllocation" class="block text-sm font-medium text-gray-700">低风险资产分配比例</label>
+                                <div class="mt-1 flex rounded-md shadow-sm">
+                                    <input type="number" name="lowRiskAllocation" id="lowRiskAllocation" min="0" max="100" step="5" class="block w-full rounded-none rounded-l-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                    <span class="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 bg-gray-50 px-3 text-gray-500 sm:text-sm">%</span>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="mediumRiskAllocation" class="block text-sm font-medium text-gray-700">中风险资产分配比例</label>
+                                <div class="mt-1 flex rounded-md shadow-sm">
+                                    <input type="number" name="mediumRiskAllocation" id="mediumRiskAllocation" min="0" max="100" step="5" class="block w-full rounded-none rounded-l-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                    <span class="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 bg-gray-50 px-3 text-gray-500 sm:text-sm">%</span>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="highRiskAllocation" class="block text-sm font-medium text-gray-700">高风险资产分配比例</label>
+                                <div class="mt-1 flex rounded-md shadow-sm">
+                                    <input type="number" name="highRiskAllocation" id="highRiskAllocation" min="0" max="100" step="5" class="block w-full rounded-none rounded-l-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                    <span class="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 bg-gray-50 px-3 text-gray-500 sm:text-sm">%</span>
+                                </div>
+                                <div class="mt-1 text-xs text-gray-500" id="allocationTotal">
+                                    总分配比例: 100%
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="rebalanceThreshold" class="block text-sm font-medium text-gray-700">再平衡阈值</label>
+                                <div class="mt-1 flex rounded-md shadow-sm">
+                                    <input type="number" name="rebalanceThreshold" id="rebalanceThreshold" min="1" max="50" step="1" class="block w-full rounded-none rounded-l-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                    <span class="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 bg-gray-50 px-3 text-gray-500 sm:text-sm">%</span>
+                                </div>
+                                <div class="mt-1 text-xs text-gray-500">
+                                    当资产配置偏离目标超过此百分比时触发再平衡。
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-end">
+                                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm">
+                                    保存分配设置
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- 交易标的卡片 -->
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6 bg-white border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">交易标的设置</h3>
+                        <form id="symbolsForm">
+                            <div class="mb-4">
+                                <label for="tradingSymbols" class="block text-sm font-medium text-gray-700">交易股票列表</label>
+                                <textarea id="tradingSymbols" name="tradingSymbols" rows="8" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"></textarea>
+                                <div class="mt-1 text-xs text-gray-500">
+                                    每行输入一个股票代码。例如: AAPL, MSFT, GOOGL
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="useDefaultSymbols" name="useDefaultSymbols" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">使用默认股票列表</span>
+                                </label>
+                            </div>
+                            
+                            <div class="flex items-center justify-end">
+                                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm">
+                                    保存交易标的
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- 交易时间设置卡片 -->
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6 bg-white border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">交易时间设置</h3>
+                        <form id="tradingTimeForm">
+                            <div class="grid grid-cols-1 gap-4">
+                                <div>
+                                    <label for="marketOpenTime" class="block text-sm font-medium text-gray-700">市场开盘时间</label>
+                                    <input type="time" id="marketOpenTime" name="marketOpenTime" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                </div>
+                                
+                                <div>
+                                    <label for="marketCloseTime" class="block text-sm font-medium text-gray-700">市场收盘时间</label>
+                                    <input type="time" id="marketCloseTime" name="marketCloseTime" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                </div>
+                                
+                                <div>
+                                    <label for="monitoringInterval" class="block text-sm font-medium text-gray-700">监控频率</label>
+                                    <div class="mt-1 flex rounded-md shadow-sm">
+                                        <input type="number" id="monitoringInterval" name="monitoringInterval" min="1" max="60" class="block w-full rounded-none rounded-l-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                        <span class="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 bg-gray-50 px-3 text-gray-500 sm:text-sm">分钟</span>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="enableEarlyOpen" name="enableEarlyOpen" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                        <span class="ml-2 text-sm text-gray-700">启用早盘交易</span>
+                                    </label>
+                                </div>
+                                
+                                <div>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="enableAfterHours" name="enableAfterHours" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                        <span class="ml-2 text-sm text-gray-700">启用盘后交易</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4 flex items-center justify-end">
+                                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm">
+                                    保存时间设置
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 风险管理面板 -->
+        <div id="riskSettings" class="settings-panel hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- 止损设置卡片 -->
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6 bg-white border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">止损设置</h3>
+                        <form id="stopLossForm">
+                            <div class="mb-4">
+                                <label for="stopLossPercent" class="block text-sm font-medium text-gray-700">止损百分比</label>
+                                <div class="mt-1 flex rounded-md shadow-sm">
+                                    <input type="number" id="stopLossPercent" name="stopLossPercent" min="1" max="50" step="0.5" class="block w-full rounded-none rounded-l-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                    <span class="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 bg-gray-50 px-3 text-gray-500 sm:text-sm">%</span>
+                                </div>
+                                <div class="mt-1 text-xs text-gray-500">
+                                    当价格下跌超过此百分比时触发止损。
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="trailingStopPercent" class="block text-sm font-medium text-gray-700">移动止损百分比</label>
+                                <div class="mt-1 flex rounded-md shadow-sm">
+                                    <input type="number" id="trailingStopPercent" name="trailingStopPercent" min="1" max="50" step="0.5" class="block w-full rounded-none rounded-l-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                    <span class="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 bg-gray-50 px-3 text-gray-500 sm:text-sm">%</span>
+                                </div>
+                                <div class="mt-1 text-xs text-gray-500">
+                                    当价格从高点下跌超过此百分比时触发移动止损。
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="enableTrailingStop" name="enableTrailingStop" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">启用移动止损</span>
+                                </label>
+                            </div>
+                            
+                            <div class="flex items-center justify-end">
+                                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm">
+                                    保存止损设置
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- 风险限制卡片 -->
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6 bg-white border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">风险限制</h3>
+                        <form id="riskLimitForm">
+                            <div class="mb-4">
+                                <label for="maxDrawdownLimit" class="block text-sm font-medium text-gray-700">最大回撤限制</label>
+                                <div class="mt-1 flex rounded-md shadow-sm">
+                                    <input type="number" id="maxDrawdownLimit" name="maxDrawdownLimit" min="5" max="50" step="1" class="block w-full rounded-none rounded-l-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                    <span class="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 bg-gray-50 px-3 text-gray-500 sm:text-sm">%</span>
+                                </div>
+                                <div class="mt-1 text-xs text-gray-500">
+                                    当投资组合达到此回撤限制时暂停交易。
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="riskPerTrade" class="block text-sm font-medium text-gray-700">每笔交易风险比例</label>
+                                <div class="mt-1 flex rounded-md shadow-sm">
+                                    <input type="number" id="riskPerTrade" name="riskPerTrade" min="0.1" max="10" step="0.1" class="block w-full rounded-none rounded-l-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                    <span class="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 bg-gray-50 px-3 text-gray-500 sm:text-sm">%</span>
+                                </div>
+                                <div class="mt-1 text-xs text-gray-500">
+                                    每笔交易最多风险账户的此百分比资金。
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="dailyLossLimit" class="block text-sm font-medium text-gray-700">每日亏损限制</label>
+                                <div class="mt-1 flex rounded-md shadow-sm">
+                                    <input type="number" id="dailyLossLimit" name="dailyLossLimit" min="1" max="20" step="0.5" class="block w-full rounded-none rounded-l-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                    <span class="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 bg-gray-50 px-3 text-gray-500 sm:text-sm">%</span>
+                                </div>
+                                <div class="mt-1 text-xs text-gray-500">
+                                    当日亏损达到此百分比时暂停交易。
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="enableKellyCalculation" name="enableKellyCalculation" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">启用凯利公式仓位管理</span>
+                                </label>
+                                <div class="mt-1 text-xs text-gray-500">
+                                    基于胜率和盈亏比自动调整仓位大小。
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-end">
+                                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm">
+                                    保存风险限制
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- 市场状态设置卡片 -->
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6 bg-white border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">市场状态设置</h3>
+                        <form id="marketStateForm">
+                            <div class="mb-4">
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="enableMarketRegimeFilter" name="enableMarketRegimeFilter" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">启用市场状态过滤</span>
+                                </label>
+                                <div class="mt-1 text-xs text-gray-500">
+                                    根据当前市场状态调整交易策略。
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="bearMarketThreshold" class="block text-sm font-medium text-gray-700">熊市阈值</label>
+                                <div class="mt-1 flex rounded-md shadow-sm">
+                                    <input type="number" id="bearMarketThreshold" name="bearMarketThreshold" min="-30" max="0" step="1" class="block w-full rounded-none rounded-l-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                    <span class="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 bg-gray-50 px-3 text-gray-500 sm:text-sm">%</span>
+                                </div>
+                                <div class="mt-1 text-xs text-gray-500">
+                                    当SPY跌破MA200超过此百分比时视为熊市。
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="highVolatilityThreshold" class="block text-sm font-medium text-gray-700">高波动率阈值</label>
+                                <input type="number" id="highVolatilityThreshold" name="highVolatilityThreshold" min="20" max="100" step="1" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                <div class="mt-1 text-xs text-gray-500">
+                                    当VIX超过此值时视为高波动率市场。
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="bearMarketAction" class="block text-sm font-medium text-gray-700">熊市行动</label>
+                                <select id="bearMarketAction" name="bearMarketAction" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                    <option value="reduce_size">减少仓位</option>
+                                    <option value="stop_buying">停止买入</option>
+                                    <option value="close_positions">平仓所有头寸</option>
+                                    <option value="reverse">反向交易</option>
+                                </select>
+                            </div>
+                            
+                            <div class="flex items-center justify-end">
+                                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm">
+                                    保存市场状态设置
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- 利润锁定设置卡片 -->
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6 bg-white border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">利润锁定设置</h3>
+                        <form id="profitTakingForm">
+                            <div class="mb-4">
+                                <label for="partialProfitLevel1" class="block text-sm font-medium text-gray-700">首级利润锁定 (Level 1)</label>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <div class="mt-1 flex rounded-md shadow-sm">
+                                            <input type="number" id="partialProfitLevel1" name="partialProfitLevel1" min="5" max="100" step="1" class="block w-full rounded-none rounded-l-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                            <span class="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 bg-gray-50 px-3 text-gray-500 sm:text-sm">%</span>
+                                        </div>
+                                        <div class="mt-1 text-xs text-gray-500">
+                                            利润百分比
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="mt-1 flex rounded-md shadow-sm">
+                                            <input type="number" id="partialProfitPercent1" name="partialProfitPercent1" min="5" max="100" step="5" class="block w-full rounded-none rounded-l-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                            <span class="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 bg-gray-50 px-3 text-gray-500 sm:text-sm">%</span>
+                                        </div>
+                                        <div class="mt-1 text-xs text-gray-500">
+                                            卖出百分比
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="partialProfitLevel2" class="block text-sm font-medium text-gray-700">二级利润锁定 (Level 2)</label>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <div class="mt-1 flex rounded-md shadow-sm">
+                                            <input type="number" id="partialProfitLevel2" name="partialProfitLevel2" min="5" max="100" step="1" class="block w-full rounded-none rounded-l-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                            <span class="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 bg-gray-50 px-3 text-gray-500 sm:text-sm">%</span>
+                                        </div>
+                                        <div class="mt-1 text-xs text-gray-500">
+                                            利润百分比
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="mt-1 flex rounded-md shadow-sm">
+                                            <input type="number" id="partialProfitPercent2" name="partialProfitPercent2" min="5" max="100" step="5" class="block w-full rounded-none rounded-l-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                            <span class="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 bg-gray-50 px-3 text-gray-500 sm:text-sm">%</span>
+                                        </div>
+                                        <div class="mt-1 text-xs text-gray-500">
+                                            卖出百分比
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="partialProfitLevel3" class="block text-sm font-medium text-gray-700">三级利润锁定 (Level 3)</label>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <div class="mt-1 flex rounded-md shadow-sm">
+                                            <input type="number" id="partialProfitLevel3" name="partialProfitLevel3" min="5" max="100" step="1" class="block w-full rounded-none rounded-l-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                            <span class="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 bg-gray-50 px-3 text-gray-500 sm:text-sm">%</span>
+                                        </div>
+                                        <div class="mt-1 text-xs text-gray-500">
+                                            利润百分比
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="mt-1 flex rounded-md shadow-sm">
+                                            <input type="number" id="partialProfitPercent3" name="partialProfitPercent3" min="5" max="100" step="5" class="block w-full rounded-none rounded-l-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                            <span class="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 bg-gray-50 px-3 text-gray-500 sm:text-sm">%</span>
+                                        </div>
+                                        <div class="mt-1 text-xs text-gray-500">
+                                            卖出百分比
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="enablePartialProfitTaking" name="enablePartialProfitTaking" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">启用分级利润锁定</span>
+                                </label>
+                            </div>
+                            
+                            <div class="flex items-center justify-end">
+                                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm">
+                                    保存利润锁定设置
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 通知设置面板 -->
+        <div id="notificationSettings" class="settings-panel hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- 基本通知设置卡片 -->
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6 bg-white border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">基本通知设置</h3>
+                        <form id="basicNotificationForm">
+                            <div class="mb-4">
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="enableNotifications" name="enableNotifications" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">启用通知</span>
+                                </label>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="notificationMethod" class="block text-sm font-medium text-gray-700">通知方式</label>
+                                <select id="notificationMethod" name="notificationMethod" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                    <option value="print">控制台打印</option>
+                                    <option value="system">系统通知</option>
+                                    <option value="email">电子邮件</option>
+                                    <option value="webhook">Webhook</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-4" id="emailSettingsContainer">
+                                <label for="emailRecipients" class="block text-sm font-medium text-gray-700">邮件接收人</label>
+                                <input type="text" id="emailRecipients" name="emailRecipients" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                <div class="mt-1 text-xs text-gray-500">
+                                    多个邮箱用逗号分隔。
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4" id="webhookSettingsContainer">
+                                <label for="webhookUrl" class="block text-sm font-medium text-gray-700">Webhook URL</label>
+                                <input type="text" id="webhookUrl" name="webhookUrl" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                <div class="mt-1 text-xs text-gray-500">
+                                    支持Discord、Slack等Webhook。
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-end">
+                                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm">
+                                    保存通知设置
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- 通知事件设置卡片 -->
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6 bg-white border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">通知事件设置</h3>
+                        <form id="notificationEventsForm">
+                            <div class="space-y-2">
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="notifyTrades" name="notifyTrades" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">交易执行通知</span>
+                                </label>
+                                
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="notifySignals" name="notifySignals" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">交易信号通知</span>
+                                </label>
+                                
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="notifyProfitLoss" name="notifyProfitLoss" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">盈亏通知</span>
+                                </label>
+                                
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="notifyStopLoss" name="notifyStopLoss" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">止损触发通知</span>
+                                </label>
+                                
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="notifyPortfolioRebalance" name="notifyPortfolioRebalance" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">投资组合再平衡通知</span>
+                                </label>
+                                
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="notifyMarketRegime" name="notifyMarketRegime" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">市场状态变化通知</span>
+                                </label>
+                                
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="notifySystemErrors" name="notifySystemErrors" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">系统错误通知</span>
+                                </label>
+                                
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="notifyDailyReport" name="notifyDailyReport" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">每日报告通知</span>
+                                </label>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <label for="notificationThreshold" class="block text-sm font-medium text-gray-700">交易通知阈值</label>
+                                <div class="mt-1 flex rounded-md shadow-sm">
+                                    <span class="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 bg-gray-50 px-3 text-gray-500 sm:text-sm">$</span>
+                                    <input type="number" id="notificationThreshold" name="notificationThreshold" min="0" step="100" class="block w-full rounded-none rounded-r-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                </div>
+                                <div class="mt-1 text-xs text-gray-500">
+                                    仅通知金额超过此阈值的交易。
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4 flex items-center justify-end">
+                                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm">
+                                    保存事件设置
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- 邮件服务器设置卡片 -->
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6 bg-white border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">邮件服务器设置</h3>
+                        <form id="emailServerForm">
+                            <div class="mb-4">
+                                <label for="smtpServer" class="block text-sm font-medium text-gray-700">SMTP服务器</label>
+                                <input type="text" id="smtpServer" name="smtpServer" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="smtpPort" class="block text-sm font-medium text-gray-700">SMTP端口</label>
+                                <input type="number" id="smtpPort" name="smtpPort" min="1" max="65535" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="smtpUsername" class="block text-sm font-medium text-gray-700">SMTP用户名</label>
+                                <input type="text" id="smtpUsername" name="smtpUsername" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="smtpPassword" class="block text-sm font-medium text-gray-700">SMTP密码</label>
+                                <input type="password" id="smtpPassword" name="smtpPassword" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                <div class="mt-1 text-xs text-gray-500">
+                                    只有在需要更新时才填写，留空保持现有设置。
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="senderEmail" class="block text-sm font-medium text-gray-700">发件人邮箱</label>
+                                <input type="email" id="senderEmail" name="senderEmail" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="useEncryption" name="useEncryption" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">使用TLS加密</span>
+                                </label>
+                            </div>
+                            
+                            <div class="flex items-center justify-end space-x-3">
+                                <button type="button" id="testEmailBtn" class="px-4 py-2 bg-gray-600 text-white rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:text-sm">
+                                    测试邮件
+                                </button>
+                                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm">
+                                    保存邮件设置
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 系统设置面板 -->
+        <div id="systemSettings" class="settings-panel hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- 模型设置卡片 -->
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6 bg-white border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">机器学习模型设置</h3>
+                        <form id="modelSettingsForm">
+                            <div class="mb-4">
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="enableMachineLearning" name="enableMachineLearning" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">启用机器学习</span>
+                                </label>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="enableReinforcementLearning" name="enableReinforcementLearning" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">启用强化学习</span>
+                                </label>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="mlWeight" class="block text-sm font-medium text-gray-700">机器学习权重</label>
+                                <input type="range" id="mlWeight" name="mlWeight" min="0" max="100" step="5" class="mt-1 block w-full border-gray-300 focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                <div class="mt-1 flex justify-between text-xs text-gray-500">
+                                    <span>0% (仅规则)</span>
+                                    <span id="mlWeightValue">50%</span>
+                                    <span>100% (仅ML)</span>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="mlThresholdBuy" class="block text-sm font-medium text-gray-700">买入阈值</label>
+                                <div class="mt-1 flex rounded-md shadow-sm">
+                                    <input type="number" id="mlThresholdBuy" name="mlThresholdBuy" min="50" max="100" step="1" class="block w-full rounded-none rounded-l-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                    <span class="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 bg-gray-50 px-3 text-gray-500 sm:text-sm">%</span>
+                                </div>
+                                <div class="mt-1 text-xs text-gray-500">
+                                    ML预测上涨概率高于此值时买入。
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="mlThresholdSell" class="block text-sm font-medium text-gray-700">卖出阈值</label>
+                                <div class="mt-1 flex rounded-md shadow-sm">
+                                    <input type="number" id="mlThresholdSell" name="mlThresholdSell" min="0" max="50" step="1" class="block w-full rounded-none rounded-l-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                    <span class="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 bg-gray-50 px-3 text-gray-500 sm:text-sm">%</span>
+                                </div>
+                                <div class="mt-1 text-xs text-gray-500">
+                                    ML预测上涨概率低于此值时卖出。
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="retrainFrequency" class="block text-sm font-medium text-gray-700">重训频率</label>
+                                <select id="retrainFrequency" name="retrainFrequency" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                    <option value="daily">每日</option>
+                                    <option value="weekly">每周</option>
+                                    <option value="monthly">每月</option>
+                                    <option value="manual">手动</option>
+                                </select>
+                            </div>
+                            
+                            <div class="flex items-center justify-end space-x-3">
+                                <button type="button" id="retrainModelsBtn" class="px-4 py-2 bg-green-600 text-white rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:text-sm">
+                                    立即重训模型
+                                </button>
+                                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm">
+                                    保存模型设置
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- 数据设置卡片 -->
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6 bg-white border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">数据设置</h3>
+                        <form id="dataSettingsForm">
+                            <div class="mb-4">
+                                <label for="dataDir" class="block text-sm font-medium text-gray-700">数据目录</label>
+                                <input type="text" id="dataDir" name="dataDir" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="modelDir" class="block text-sm font-medium text-gray-700">模型目录</label>
+                                <input type="text" id="modelDir" name="modelDir" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="logLevel" class="block text-sm font-medium text-gray-700">日志级别</label>
+                                <select id="logLevel" name="logLevel" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                    <option value="DEBUG">调试</option>
+                                    <option value="INFO">信息</option>
+                                    <option value="WARNING">警告</option>
+                                    <option value="ERROR">错误</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="databaseType" class="block text-sm font-medium text-gray-700">数据库类型</label>
+                                <select id="databaseType" name="databaseType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                    <option value="mysql">MySQL</option>
+                                    <option value="sqlite">SQLite</option>
+                                    <option value="csv">CSV文件</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-4" id="mysqlSettingsContainer">
+                                <div class="p-3 bg-gray-50 rounded-lg">
+                                    <h4 class="text-sm font-medium text-gray-700 mb-2">MySQL设置</h4>
+                                    
+                                    <div class="mb-2">
+                                        <label for="mysqlHost" class="block text-xs font-medium text-gray-700">主机</label>
+                                        <input type="text" id="mysqlHost" name="mysqlHost" class="mt-1 block w-full text-xs border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    </div>
+                                    
+                                    <div class="mb-2">
+                                        <label for="mysqlPort" class="block text-xs font-medium text-gray-700">端口</label>
+                                        <input type="number" id="mysqlPort" name="mysqlPort" class="mt-1 block w-full text-xs border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    </div>
+                                    
+                                    <div class="mb-2">
+                                        <label for="mysqlUser" class="block text-xs font-medium text-gray-700">用户名</label>
+                                        <input type="text" id="mysqlUser" name="mysqlUser" class="mt-1 block w-full text-xs border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    </div>
+                                    
+                                    <div class="mb-2">
+                                        <label for="mysqlPassword" class="block text-xs font-medium text-gray-700">密码</label>
+                                        <input type="password" id="mysqlPassword" name="mysqlPassword" class="mt-1 block w-full text-xs border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    </div>
+                                    
+                                    <div>
+                                        <label for="mysqlDatabase" class="block text-xs font-medium text-gray-700">数据库名</label>
+                                        <input type="text" id="mysqlDatabase" name="mysqlDatabase" class="mt-1 block w-full text-xs border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="backupEnabled" name="backupEnabled" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">启用自动备份</span>
+                                </label>
+                            </div>
+                            
+                            <div class="mb-4" id="backupSettingsContainer">
+                                <label for="backupFrequency" class="block text-sm font-medium text-gray-700">备份频率</label>
+                                <select id="backupFrequency" name="backupFrequency" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                    <option value="daily">每日</option>
+                                    <option value="weekly">每周</option>
+                                    <option value="monthly">每月</option>
+                                </select>
+                            </div>
+                            
+                            <div class="flex items-center justify-end space-x-3">
+                                <button type="button" id="backupNowBtn" class="px-4 py-2 bg-gray-600 text-white rounded-md shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:text-sm">
+                                    立即备份
+                                </button>
+                                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm">
+                                    保存数据设置
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- 系统维护卡片 -->
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6 bg-white border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">系统维护</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <button id="restartSystemBtn" class="w-full px-4 py-2 bg-yellow-600 text-white rounded-md shadow-sm hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 sm:text-sm">
+                                    重启交易系统
+                                </button>
+                            </div>
+                            
+                            <div>
+                                <button id="clearCacheBtn" class="w-full px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm">
+                                    清除缓存
+                                </button>
+                            </div>
+                            
+                            <div>
+                                <button id="checkHealthBtn" class="w-full px-4 py-2 bg-green-600 text-white rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:text-sm">
+                                    检查系统健康
+                                </button>
+                            </div>
+                            
+                            <div>
+                                <button id="resetDatabaseBtn" class="w-full px-4 py-2 bg-red-600 text-white rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm">
+                                    重置数据库
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 p-3 bg-gray-50 rounded-lg" id="systemStatusOutput">
+                            <p class="text-sm text-gray-600">系统状态将显示在这里...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 仪表盘设置卡片 -->
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6 bg-white border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">仪表盘设置</h3>
+                        <form id="dashboardSettingsForm">
+                            <div class="mb-4">
+                                <label for="dashboardPort" class="block text-sm font-medium text-gray-700">仪表盘端口</label>
+                                <input type="number" id="dashboardPort" name="dashboardPort" min="1024" max="65535" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                <div class="mt-1 text-xs text-gray-500">
+                                    修改后需要重启仪表盘。
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="dashboardRefreshRate" class="block text-sm font-medium text-gray-700">刷新频率</label>
+                                <div class="mt-1 flex rounded-md shadow-sm">
+                                    <input type="number" id="dashboardRefreshRate" name="dashboardRefreshRate" min="30" max="3600" step="30" class="block w-full rounded-none rounded-l-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                    <span class="inline-flex items-center rounded-r-md border border-l-0 border-gray-300 bg-gray-50 px-3 text-gray-500 sm:text-sm">秒</span>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="enableDarkMode" name="enableDarkMode" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">启用暗黑模式</span>
+                                </label>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="showAllMetrics" name="showAllMetrics" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">显示所有指标</span>
+                                </label>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="enableAuthentication" name="enableAuthentication" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                    <span class="ml-2 text-sm text-gray-700">启用仪表盘认证</span>
+                                </label>
+                            </div>
+                            
+                            <div class="mb-4 ml-6" id="authenticationContainer">
+                                <div class="mb-2">
+                                    <label for="username" class="block text-sm font-medium text-gray-700">用户名</label>
+                                    <input type="text" id="username" name="username" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                </div>
+                                
+                                <div>
+                                    <label for="password" class="block text-sm font-medium text-gray-700">密码</label>
+                                    <input type="password" id="password" name="password" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-end">
+                                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm">
+                                    保存仪表盘设置
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-white border-t border-gray-200 py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between">
+                <div class="text-sm text-gray-500">
+                    &copy; 2025 交易系统仪表盘
+                </div>
+                <div class="text-sm text-gray-500">
+                    <a href="/about" class="text-gray-500 hover:text-gray-700">关于</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 确认对话框 -->
+    <div id="confirmDialog" class="fixed inset-0 bg-gray-500 bg-opacity-75 hidden flex items-center justify-center">
+        <div class="bg-white rounded-lg overflow-hidden shadow-xl transform transition-all sm:max-w-lg sm:w-full">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div class="sm:flex sm:items-start">
+                    <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                        <i class="fas fa-exclamation-triangle text-red-600"></i>
+                    </div>
+                    <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900" id="confirmDialogTitle">确认操作</h3>
+                        <div class="mt-2">
+                            <p class="text-sm text-gray-500" id="confirmDialogMessage">
+                                您确定要执行此操作吗？
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button type="button" id="confirmDialogConfirmBtn" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
+                    确认
+                </button>
+                <button type="button" id="confirmDialogCancelBtn" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                    取消
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // 全局变量
+        let confirmDialogCallback = null;
+        let settingsData = null;
+        
+        // 切换设置选项卡
+        function switchTab(tabId) {
+            // 隐藏所有面板
+            document.querySelectorAll('.settings-panel').forEach(panel => {
+                panel.classList.add('hidden');
+            });
+            
+            // 显示选中的面板
+            document.getElementById(tabId).classList.remove('hidden');
+            
+            // 更新选项卡样式
+            document.querySelectorAll('#settingsTabs a').forEach(tab => {
+                tab.classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+                tab.classList.add('text-gray-500', 'hover:text-gray-700');
+            });
+            
+            document.querySelector(`#settingsTabs a[data-tab="${tabId}"]`).classList.remove('text-gray-500', 'hover:text-gray-700');
+            document.querySelector(`#settingsTabs a[data-tab="${tabId}"]`).classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+        }
+        
+        // 显示确认对话框
+        function showConfirmDialog(title, message, callback) {
+            document.getElementById('confirmDialogTitle').textContent = title;
+            document.getElementById('confirmDialogMessage').textContent = message;
+            document.getElementById('confirmDialog').classList.remove('hidden');
+            confirmDialogCallback = callback;
+        }
+        
+        // 加载设置数据
+        function loadSettingsData() {
+            fetch('/api/settings')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        settingsData = data.settings;
+                        populateFormsWithData(settingsData);
+                        document.getElementById('lastUpdated').textContent = `上次更新: ${new Date().toLocaleString()}`;
+                    } else {
+                        console.error('加载设置失败:', data.message);
+                        alert('加载设置失败: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('请求设置数据出错:', error);
+                    alert('加载设置时出错，请稍后再试');
+                });
+        }
+        
+        // 使用数据填充表单
+        function populateFormsWithData(data) {
+            // 交易设置
+            if (data.trading) {
+                document.getElementById('apiKey').value = ''; // 出于安全考虑不显示
+                document.getElementById('apiSecret').value = ''; // 出于安全考虑不显示
+                document.getElementById('tradingMode').value = data.trading.mode || 'paper';
+                document.getElementById('maxPositions').value = data.trading.max_positions || 5;
+                
+                // 投资组合分配
+                document.getElementById('lowRiskAllocation').value = (data.trading.risk_allocation?.low || 0.5) * 100;
+                document.getElementById('mediumRiskAllocation').value = (data.trading.risk_allocation?.medium || 0.3) * 100;
+                document.getElementById('highRiskAllocation').value = (data.trading.risk_allocation?.high || 0.2) * 100;
+                document.getElementById('rebalanceThreshold').value = (data.trading.rebalance_threshold || 0.1) * 100;
+                
+                // 交易标的
+                if (data.trading.symbols) {
+                    document.getElementById('tradingSymbols').value = data.trading.symbols.join('\n');
+                }
+                document.getElementById('useDefaultSymbols').checked = data.trading.use_default_symbols || false;
+                
+                // 交易时间
+                document.getElementById('marketOpenTime').value = data.trading.market_open_time || '09:30';
+                document.getElementById('marketCloseTime').value = data.trading.market_close_time || '16:00';
+                document.getElementById('monitoringInterval').value = data.trading.monitoring_interval || 15;
+                document.getElementById('enableEarlyOpen').checked = data.trading.enable_early_open || false;
+                document.getElementById('enableAfterHours').checked = data.trading.enable_after_hours || false;
+            }
+            
+            // 风险管理设置
+            if (data.risk) {
+                // 止损设置
+                document.getElementById('stopLossPercent').value = (data.risk.stop_loss_percent || 0.05) * 100;
+                document.getElementById('trailingStopPercent').value = (data.risk.trailing_stop_percent || 0.03) * 100;
+                document.getElementById('enableTrailingStop').checked = data.risk.enable_trailing_stop || false;
+                
+                // 风险限制
+                document.getElementById('maxDrawdownLimit').value = Math.abs((data.risk.max_drawdown_limit || -0.15) * 100);
+                document.getElementById('riskPerTrade').value = (data.risk.risk_per_trade || 0.02) * 100;
+                document.getElementById('dailyLossLimit').value = (data.risk.daily_loss_limit || 0.05) * 100;
+                document.getElementById('enableKellyCalculation').checked = data.risk.enable_kelly_calculation || false;
+                
+                // 市场状态设置
+                document.getElementById('enableMarketRegimeFilter').checked = data.risk.enable_market_regime_filter || false;
+                document.getElementById('bearMarketThreshold').value = (data.risk.bear_market_threshold || -0.10) * 100;
+                document.getElementById('highVolatilityThreshold').value = data.risk.high_volatility_threshold || 30;
+                document.getElementById('bearMarketAction').value = data.risk.bear_market_action || 'reduce_size';
+                
+                // 利润锁定设置
+                if (data.risk.profit_taking) {
+                    document.getElementById('partialProfitLevel1').value = (data.risk.profit_taking.level1 || 0.05) * 100;
+                    document.getElementById('partialProfitPercent1').value = (data.risk.profit_taking.percent1 || 0.2) * 100;
+                    document.getElementById('partialProfitLevel2').value = (data.risk.profit_taking.level2 || 0.1) * 100;
+                    document.getElementById('partialProfitPercent2').value = (data.risk.profit_taking.percent2 || 0.4) * 100;
+                    document.getElementById('partialProfitLevel3').value = (data.risk.profit_taking.level3 || 0.15) * 100;
+                    document.getElementById('partialProfitPercent3').value = (data.risk.profit_taking.percent3 || 0.6) * 100;
+                    document.getElementById('enablePartialProfitTaking').checked = data.risk.profit_taking.enabled || false;
+                }
+            }
+            
+            // 通知设置
+            if (data.notifications) {
+                document.getElementById('enableNotifications').checked = data.notifications.enabled || false;
+                document.getElementById('notificationMethod').value = data.notifications.method || 'print';
+                document.getElementById('emailRecipients').value = data.notifications.email_recipients || '';
+                document.getElementById('webhookUrl').value = data.notifications.webhook_url || '';
+                
+                // 通知事件
+                if (data.notifications.events) {
+                    document.getElementById('notifyTrades').checked = data.notifications.events.trades || false;
+                    document.getElementById('notifySignals').checked = data.notifications.events.signals || false;
+                    document.getElementById('notifyProfitLoss').checked = data.notifications.events.profit_loss || false;
+                    document.getElementById('notifyStopLoss').checked = data.notifications.events.stop_loss || false;
+                    document.getElementById('notifyPortfolioRebalance').checked = data.notifications.events.portfolio_rebalance || false;
+                    document.getElementById('notifyMarketRegime').checked = data.notifications.events.market_regime || false;
+                    document.getElementById('notifySystemErrors').checked = data.notifications.events.system_errors || false;
+                    document.getElementById('notifyDailyReport').checked = data.notifications.events.daily_report || false;
+                }
+                
+                document.getElementById('notificationThreshold').value = data.notifications.threshold || 0;
+                
+                // 邮件服务器设置
+                if (data.notifications.smtp) {
+                    document.getElementById('smtpServer').value = data.notifications.smtp.server || '';
+                    document.getElementById('smtpPort').value = data.notifications.smtp.port || 587;
+                    document.getElementById('smtpUsername').value = data.notifications.smtp.username || '';
+                    document.getElementById('smtpPassword').value = ''; // 出于安全考虑不显示
+                    document.getElementById('senderEmail').value = data.notifications.smtp.sender_email || '';
+                    document.getElementById('useEncryption').checked = data.notifications.smtp.use_encryption || true;
+                }
+            }
+            
+            // 系统设置
+            if (data.system) {
+                // 模型设置
+                if (data.system.ml) {
+                    document.getElementById('enableMachineLearning').checked = data.system.ml.enabled || true;
+                    document.getElementById('enableReinforcementLearning').checked = data.system.ml.enable_rl || false;
+                    document.getElementById('mlWeight').value = (data.system.ml.weight || 0.5) * 100;
+                    document.getElementById('mlWeightValue').textContent = `${(data.system.ml.weight || 0.5) * 100}%`;
+                    document.getElementById('mlThresholdBuy').value = (data.system.ml.threshold_buy || 0.6) * 100;
+                    document.getElementById('mlThresholdSell').value = (data.system.ml.threshold_sell || 0.4) * 100;
+                    document.getElementById('retrainFrequency').value = data.system.ml.retrain_frequency || 'weekly';
+                }
+                
+                // 数据设置
+                document.getElementById('dataDir').value = data.system.data_dir || 'data';
+                document.getElementById('modelDir').value = data.system.model_dir || 'models';
+                document.getElementById('logLevel').value = data.system.log_level || 'INFO';
+                document.getElementById('databaseType').value = data.system.database_type || 'mysql';
+                
+                // MySQL设置
+                if (data.system.mysql) {
+                    document.getElementById('mysqlHost').value = data.system.mysql.host || 'localhost';
+                    document.getElementById('mysqlPort').value = data.system.mysql.port || 3306;
+                    document.getElementById('mysqlUser').value = data.system.mysql.user || 'root';
+                    document.getElementById('mysqlPassword').value = ''; // 出于安全考虑不显示
+                    document.getElementById('mysqlDatabase').value = data.system.mysql.database || 'trading';
+                }
+                
+                // 备份设置
+                document.getElementById('backupEnabled').checked = data.system.backup?.enabled || false;
+                document.getElementById('backupFrequency').value = data.system.backup?.frequency || 'daily';
+                
+                // 仪表盘设置
+                if (data.system.dashboard) {
+                    document.getElementById('dashboardPort').value = data.system.dashboard.port || 5000;
+                    document.getElementById('dashboardRefreshRate').value = data.system.dashboard.refresh_rate || 300;
+                    document.getElementById('enableDarkMode').checked = data.system.dashboard.dark_mode || false;
+                    document.getElementById('showAllMetrics').checked = data.system.dashboard.show_all_metrics || false;
+                    document.getElementById('enableAuthentication').checked = data.system.dashboard.auth?.enabled || false;
+                    document.getElementById('username').value = data.system.dashboard.auth?.username || '';
+                    document.getElementById('password').value = ''; // 出于安全考虑不显示
+                }
+            }
+            
+            // 根据选择状态显示/隐藏相关设置
+            updateDependentFields();
+        }
+        
+        // 根据选择状态更新相关字段的显示/隐藏
+        function updateDependentFields() {
+            // 通知方式
+            const notificationMethod = document.getElementById('notificationMethod').value;
+            document.getElementById('emailSettingsContainer').style.display = notificationMethod === 'email' ? 'block' : 'none';
+            document.getElementById('webhookSettingsContainer').style.display = notificationMethod === 'webhook' ? 'block' : 'none';
+            
+            // 数据库类型
+            const databaseType = document.getElementById('databaseType').value;
+            document.getElementById('mysqlSettingsContainer').style.display = databaseType === 'mysql' ? 'block' : 'none';
+            
+            // 备份设置
+            document.getElementById('backupSettingsContainer').style.display = document.getElementById('backupEnabled').checked ? 'block' : 'none';
+            
+            // 仪表盘认证
+            document.getElementById('authenticationContainer').style.display = document.getElementById('enableAuthentication').checked ? 'block' : 'none';
+        }
+        
+        // 保存表单数据
+        function saveFormData(formId) {
+            const form = document.getElementById(formId);
+            const formData = new FormData(form);
+            const data = {};
+            
+            // 将FormData转换为普通对象
+            for (const [key, value] of formData.entries()) {
+                data[key] = value;
+            }
+            
+            // 使用API保存表单数据
+            fetch('/api/settings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    form: formId,
+                    data: data
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.status === 'success') {
+                    alert('设置已保存');
+                    // 重新加载设置
+                    loadSettingsData();
+                } else {
+                    alert('保存设置失败: ' + result.message);
+                }
+            })
+            .catch(error => {
+                console.error('保存设置时出错:', error);
+                alert('保存设置时出错，请稍后再试');
+            });
+        }
+        
+        // 执行系统维护操作
+        function performMaintenance(action) {
+            document.getElementById('systemStatusOutput').innerHTML = '<p class="text-sm text-blue-600">正在执行操作，请稍候...</p>';
+            
+            fetch('/api/maintenance', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    action: action
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.status === 'success') {
+                    document.getElementById('systemStatusOutput').innerHTML = `<p class="text-sm text-green-600">${result.message}</p>`;
+                } else {
+                    document.getElementById('systemStatusOutput').innerHTML = `<p class="text-sm text-red-600">操作失败: ${result.message}</p>`;
+                }
+            })
+            .catch(error => {
+                console.error('执行维护操作时出错:', error);
+                document.getElementById('systemStatusOutput').innerHTML = `<p class="text-sm text-red-600">操作出错: ${error.message}</p>`;
+            });
+        }
+        
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 加载设置数据
+            loadSettingsData();
+            
+            // 切换标签页事件监听
+            document.querySelectorAll('#settingsTabs a').forEach(tab => {
+                tab.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    switchTab(this.getAttribute('data-tab'));
+                });
+            });
+            
+            // 确认对话框事件
+            document.getElementById('confirmDialogConfirmBtn').addEventListener('click', function() {
+                if (typeof confirmDialogCallback === 'function') {
+                    confirmDialogCallback();
+                }
+                document.getElementById('confirmDialog').classList.add('hidden');
+            });
+            
+            document.getElementById('confirmDialogCancelBtn').addEventListener('click', function() {
+                document.getElementById('confirmDialog').classList.add('hidden');
+            });
+            
+            // 添加表单提交事件监听
+            document.getElementById('basicSettingsForm').addEventListener('submit', function(event) {event.preventDefault();
+                saveFormData('basicSettingsForm');
+            });
+            
+            document.getElementById('allocationForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+                
+                // 检查分配比例总和是否为100%
+                const low = parseFloat(document.getElementById('lowRiskAllocation').value) || 0;
+                const medium = parseFloat(document.getElementById('mediumRiskAllocation').value) || 0;
+                const high = parseFloat(document.getElementById('highRiskAllocation').value) || 0;
+                const total = low + medium + high;
+                
+                if (Math.abs(total - 100) > 1) {
+                    alert(`风险分配总和应为100%，当前为${total.toFixed(0)}%`);
+                    return;
+                }
+                
+                saveFormData('allocationForm');
+            });
+            
+            document.getElementById('symbolsForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+                saveFormData('symbolsForm');
+            });
+            
+            document.getElementById('tradingTimeForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+                saveFormData('tradingTimeForm');
+            });
+            
+            document.getElementById('stopLossForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+                saveFormData('stopLossForm');
+            });
+            
+            document.getElementById('riskLimitForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+                saveFormData('riskLimitForm');
+            });
+            
+            document.getElementById('marketStateForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+                saveFormData('marketStateForm');
+            });
+            
+            document.getElementById('profitTakingForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+                saveFormData('profitTakingForm');
+            });
+            
+            document.getElementById('basicNotificationForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+                saveFormData('basicNotificationForm');
+            });
+            
+            document.getElementById('notificationEventsForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+                saveFormData('notificationEventsForm');
+            });
+            
+            document.getElementById('emailServerForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+                saveFormData('emailServerForm');
+            });
+            
+            document.getElementById('modelSettingsForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+                saveFormData('modelSettingsForm');
+            });
+            
+            document.getElementById('dataSettingsForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+                saveFormData('dataSettingsForm');
+            });
+            
+            document.getElementById('dashboardSettingsForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+                saveFormData('dashboardSettingsForm');
+            });
+            
+            // 添加特定元素的变更事件监听
+            document.getElementById('notificationMethod').addEventListener('change', updateDependentFields);
+            document.getElementById('databaseType').addEventListener('change', updateDependentFields);
+            document.getElementById('backupEnabled').addEventListener('change', updateDependentFields);
+            document.getElementById('enableAuthentication').addEventListener('change', updateDependentFields);
+            
+            // 添加ML权重滑块变化事件
+            document.getElementById('mlWeight').addEventListener('input', function() {
+                document.getElementById('mlWeightValue').textContent = `${this.value}%`;
+            });
+            
+            // 添加风险分配比例变化事件
+            const updateAllocationTotal = function() {
+                const low = parseFloat(document.getElementById('lowRiskAllocation').value) || 0;
+                const medium = parseFloat(document.getElementById('mediumRiskAllocation').value) || 0;
+                const high = parseFloat(document.getElementById('highRiskAllocation').value) || 0;
+                const total = low + medium + high;
+                
+                const totalEl = document.getElementById('allocationTotal');
+                totalEl.textContent = `总分配比例: ${total.toFixed(0)}%`;
+                
+                if (Math.abs(total - 100) > 1) {
+                    totalEl.classList.add('text-red-500');
+                    totalEl.classList.remove('text-gray-500');
+                } else {
+                    totalEl.classList.remove('text-red-500');
+                    totalEl.classList.add('text-gray-500');
+                }
+            };
+            
+            document.getElementById('lowRiskAllocation').addEventListener('input', updateAllocationTotal);
+            document.getElementById('mediumRiskAllocation').addEventListener('input', updateAllocationTotal);
+            document.getElementById('highRiskAllocation').addEventListener('input', updateAllocationTotal);
+            
+            // 添加测试邮件按钮点击事件
+            document.getElementById('testEmailBtn').addEventListener('click', function() {
+                const emailData = {
+                    server: document.getElementById('smtpServer').value,
+                    port: document.getElementById('smtpPort').value,
+                    username: document.getElementById('smtpUsername').value,
+                    password: document.getElementById('smtpPassword').value,
+                    sender: document.getElementById('senderEmail').value,
+                    recipient: document.getElementById('emailRecipients').value.split(',')[0],
+                    use_encryption: document.getElementById('useEncryption').checked
+                };
+                
+                if (!emailData.server || !emailData.port || !emailData.username || !emailData.recipient) {
+                    alert('请填写完整的SMTP服务器信息和收件人邮箱');
+                    return;
+                }
+                
+                fetch('/api/test_email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(emailData)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.status === 'success') {
+                        alert('测试邮件发送成功');
+                    } else {
+                        alert('测试邮件发送失败: ' + result.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('测试邮件发送时出错:', error);
+                    alert('测试邮件发送时出错，请稍后再试');
+                });
+            });
+            
+            // 添加重训模型按钮点击事件
+            document.getElementById('retrainModelsBtn').addEventListener('click', function() {
+                showConfirmDialog(
+                    '重训模型',
+                    '重训模型需要一段时间，确定要继续吗？',
+                    function() {
+                        fetch('/api/retrain_models', {
+                            method: 'POST'
+                        })
+                        .then(response => response.json())
+                        .then(result => {
+                            if (result.status === 'success') {
+                                alert('模型重训已开始，请稍后查看训练日志');
+                            } else {
+                                alert('启动模型重训失败: ' + result.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('重训模型时出错:', error);
+                            alert('重训模型时出错，请稍后再试');
+                        });
+                    }
+                );
+            });
+            
+            // 添加立即备份按钮点击事件
+            document.getElementById('backupNowBtn').addEventListener('click', function() {
+                performMaintenance('backup');
+            });
+            
+            // 添加重启系统按钮点击事件
+            document.getElementById('restartSystemBtn').addEventListener('click', function() {
+                showConfirmDialog(
+                    '重启系统',
+                    '重启系统将中断当前所有交易，确定要继续吗？',
+                    function() {
+                        performMaintenance('restart');
+                    }
+                );
+            });
+            
+            // 添加清除缓存按钮点击事件
+            document.getElementById('clearCacheBtn').addEventListener('click', function() {
+                performMaintenance('clear_cache');
+            });
+            
+            // 添加检查系统健康按钮点击事件
+            document.getElementById('checkHealthBtn').addEventListener('click', function() {
+                performMaintenance('health_check');
+            });
+            
+            // 添加重置数据库按钮点击事件
+            document.getElementById('resetDatabaseBtn').addEventListener('click', function() {
+                showConfirmDialog(
+                    '重置数据库',
+                    '此操作将删除所有数据库数据，无法恢复，确定要继续吗？',
+                    function() {
+                        showConfirmDialog(
+                            '二次确认',
+                            '再次确认：此操作将删除所有交易记录和系统数据，确定要继续吗？',
+                            function() {
+                                performMaintenance('reset_database');
+                            }
+                        );
+                    }
+                );
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图表分析 - 交易系统仪表盘</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans leading-normal tracking-normal">
+    <!-- 导航栏 -->
+    <nav class="bg-white border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        <span class="text-xl font-bold text-blue-600">交易系统仪表盘</span>
+                    </div>
+                    <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                        <a href="./index.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            首页
+                        </a>
+                        <a href="./charts.html" class="border-blue-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            图表
+                        </a>
+                        <a href="./reports.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            报告
+                        </a>
+                        <a href="./settings.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            设置
+                        </a>
+                    </div>
+                </div>
+                <div id="lastUpdated" class="flex items-center text-sm text-gray-500">
+                    上次更新: 正在加载...
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容区域 -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <!-- 图表控制面板 -->
+        <div class="mb-6">
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 bg-white border-b border-gray-200">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-semibold text-gray-900">图表分析</h2>
+                        <div class="flex space-x-2">
+                            <button id="refreshBtn" class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+                                <i class="fas fa-sync-alt mr-1"></i> 刷新数据
+                            </button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label for="timeRange" class="block text-sm font-medium text-gray-700">时间范围</label>
+                            <select id="timeRange" name="timeRange" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                                <option value="7">最近7天</option>
+                                <option value="14">最近14天</option>
+                                <option value="30" selected>最近30天</option>
+                                <option value="60">最近60天</option>
+                                <option value="90">最近90天</option>
+                                <option value="180">最近180天</option>
+                                <option value="365">最近365天</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="chartType" class="block text-sm font-medium text-gray-700">图表类型</label>
+                            <select id="chartType" name="chartType" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                                <option value="performance">绩效对比</option>
+                                <option value="cumulative">累计回报</option>
+                                <option value="daily">每日盈亏</option>
+                                <option value="drawdown">回撤分析</option>
+                                <option value="volatility">波动率</option>
+                                <option value="tradeDist">交易分布</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">对比基准</label>
+                            <div class="mt-3 flex space-x-3">
+                                <label class="inline-flex items-center">
+                                    <input type="checkbox" class="form-checkbox h-4 w-4 text-blue-600" id="benchmarkSPY" checked>
+                                    <span class="ml-2 text-sm text-gray-700">SPY</span>
+                                </label>
+                                <label class="inline-flex items-center">
+                                    <input type="checkbox" class="form-checkbox h-4 w-4 text-blue-600" id="benchmarkQQQ">
+                                    <span class="ml-2 text-sm text-gray-700">QQQ</span>
+                                </label>
+                                <label class="inline-flex items-center">
+                                    <input type="checkbox" class="form-checkbox h-4 w-4 text-blue-600" id="benchmarkDIA">
+                                    <span class="ml-2 text-sm text-gray-700">DIA</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主图表区域 -->
+        <div class="mb-6">
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 bg-white border-b border-gray-200">
+                    <h3 id="chartTitle" class="text-lg font-semibold text-gray-900 mb-4">绩效对比</h3>
+                    <div class="chart-container">
+                        <canvas id="mainChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 指标卡片行 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <!-- 关键指标卡片 1 -->
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 bg-white border-b border-gray-200">
+                    <h3 class="text-md font-semibold text-gray-900 mb-4">胜率分析</h3>
+                    <div class="chart-container" style="height: 200px;">
+                        <canvas id="winRateChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 关键指标卡片 2 -->
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 bg-white border-b border-gray-200">
+                    <h3 class="text-md font-semibold text-gray-900 mb-4">每月收益率</h3>
+                    <div class="chart-container" style="height: 200px;">
+                        <canvas id="monthlyReturnChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 关键指标卡片 3 -->
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 bg-white border-b border-gray-200">
+                    <h3 class="text-md font-semibold text-gray-900 mb-4">风险分析</h3>
+                    <div class="chart-container" style="height: 200px;">
+                        <canvas id="riskMetricsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 详细数据表格 -->
+        <div class="mb-6">
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 bg-white border-b border-gray-200">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">详细数据</h3>
+                        <button id="exportDataBtn" class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm">
+                            <i class="fas fa-download mr-1"></i> 导出CSV
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">日期</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">账户价值</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">日盈亏</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">日收益率</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SPY收益率</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">相对表现</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">累计收益</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200" id="dataTableBody">
+                                <tr>
+                                    <td colspan="7" class="px-6 py-4 text-center text-sm text-gray-500">
+                                        加载中...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-white border-t border-gray-200 py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between">
+                <div class="text-sm text-gray-500">
+                    &copy; 2025 交易系统仪表盘
+                </div>
+                <div class="text-sm text-gray-500">
+                    <a href="/about" class="text-gray-500 hover:text-gray-700">关于</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // 全局变量
+        let performanceData = null;
+        let mainChart = null;
+        let winRateChart = null;
+        let monthlyReturnChart = null;
+        let riskMetricsChart = null;
+        
+        // 格式化金额
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('zh-CN', { style: 'currency', currency: 'USD' }).format(value);
+        }
+
+        //格式化百分比
+        function formatPercent(value) {
+            return new Intl.NumberFormat('zh-CN', { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value / 100);
+        }
+        
+        // 加载性能数据
+        function loadPerformanceData() {
+            const days = document.getElementById('timeRange').value;
+            
+            // 更新上次更新时间
+            document.getElementById('lastUpdated').textContent = '正在加载数据...';
+            
+            fetch(`/api/performance?days=${days}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status !== 'success') {
+                        console.error('加载性能数据失败:', data.message);
+                        return;
+                    }
+                    
+                    // 保存数据
+                    performanceData = data;
+                    
+                    // 处理每日数据
+                    processPerformanceData();
+                    
+                    // 更新图表
+                    updateAllCharts();
+                    
+                    // 更新数据表格
+                    updateDataTable();
+                    
+                    // 更新上次更新时间
+                    document.getElementById('lastUpdated').textContent = `上次更新: ${new Date().toLocaleString()}`;
+                })
+                .catch(error => {
+                    console.error('请求性能数据出错:', error);
+                    document.getElementById('lastUpdated').textContent = `加载失败: ${error.message}`;
+                });
+        }
+        
+        // 处理性能数据
+        function processPerformanceData() {
+            if (!performanceData || !performanceData.daily_data) return;
+            
+            // 计算累计收益
+            let strategy_cumulative = 0;
+            let spy_cumulative = 0;
+            
+            performanceData.daily_data.forEach(day => {
+                // 每日相对表现
+                day.relative_performance = day.daily_return_pct - day.spy_return_pct;
+                
+                // 累计收益
+                strategy_cumulative += day.daily_return_pct / 100;
+                spy_cumulative += day.spy_return_pct / 100;
+                
+                day.strategy_cumulative = strategy_cumulative;
+                day.spy_cumulative = spy_cumulative;
+            });
+            
+            // 计算每月收益
+            const monthlyReturns = {};
+            performanceData.daily_data.forEach(day => {
+                const date = new Date(day.date);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                
+                if (!monthlyReturns[monthKey]) {
+                    monthlyReturns[monthKey] = {
+                        month: monthKey,
+                        strategy_return: 0,
+                        spy_return: 0,
+                        data_points: 0
+                    };
+                }
+                
+                monthlyReturns[monthKey].strategy_return += day.daily_return_pct;
+                monthlyReturns[monthKey].spy_return += day.spy_return_pct;
+                monthlyReturns[monthKey].data_points += 1;
+            });
+            
+            // 将月度收益转换为数组
+            performanceData.monthly_returns = Object.values(monthlyReturns).sort((a, b) => a.month.localeCompare(b.month));
+        }
+        
+        // 更新所有图表
+        function updateAllCharts() {
+            // 获取选择的图表类型
+            const chartType = document.getElementById('chartType').value;
+            
+            // 更新图表标题
+            updateChartTitle(chartType);
+            
+            // 更新主图表
+            updateMainChart(chartType);
+            
+            // 更新胜率图表
+            updateWinRateChart();
+            
+            // 更新月度收益图表
+            updateMonthlyReturnChart();
+            
+            // 更新风险指标图表
+            updateRiskMetricsChart();
+        }
+        
+        // 更新图表标题
+        function updateChartTitle(chartType) {
+            const titles = {
+                'performance': '绩效对比',
+                'cumulative': '累计回报',
+                'daily': '每日盈亏',
+                'drawdown': '回撤分析',
+                'volatility': '波动率分析',
+                'tradeDist': '交易分布'
+            };
+            
+            document.getElementById('chartTitle').textContent = titles[chartType] || '图表分析';
+        }
+        
+        // 更新主图表
+        function updateMainChart(chartType) {
+            // 清除旧图表
+            if (mainChart) {
+                mainChart.destroy();
+            }
+            
+            // 获取图表容器
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            
+            // 根据图表类型绘制不同图表
+            switch (chartType) {
+                case 'performance':
+                    createPerformanceChart(ctx);
+                    break;
+                case 'cumulative':
+                    createCumulativeReturnChart(ctx);
+                    break;
+                case 'daily':
+                    createDailyPnLChart(ctx);
+                    break;
+                case 'drawdown':
+                    createDrawdownChart(ctx);
+                    break;
+                case 'volatility':
+                    createVolatilityChart(ctx);
+                    break;
+                case 'tradeDist':
+                    createTradeDistributionChart(ctx);
+                    break;
+                default:
+                    createPerformanceChart(ctx);
+            }
+        }
+        
+        // 创建绩效对比图表
+        function createPerformanceChart(ctx) {
+            if (!performanceData || !performanceData.daily_data) return;
+            
+            const data = performanceData.daily_data;
+            
+            mainChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d.date),
+                    datasets: [
+                        {
+                            label: '策略收益率',
+                            data: data.map(d => d.daily_return_pct),
+                            borderColor: 'rgb(59, 130, 246)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            fill: false,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'SPY收益率',
+                            data: data.map(d => d.spy_return_pct),
+                            borderColor: 'rgb(107, 114, 128)',
+                            backgroundColor: 'rgba(107, 114, 128, 0.1)',
+                            borderDash: [5, 5],
+                            fill: false,
+                            tension: 0.1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${context.raw.toFixed(2)}%`;
+                                }
+                            }
+                        },
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: '日收益率 (%)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: '日期'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 创建累计回报图表
+        function createCumulativeReturnChart(ctx) {
+            if (!performanceData || !performanceData.daily_data) return;
+            
+            const data = performanceData.daily_data;
+            
+            mainChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d.date),
+                    datasets: [
+                        {
+                            label: '策略累计回报',
+                            data: data.map(d => d.strategy_cumulative * 100),
+                            borderColor: 'rgb(59, 130, 246)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            fill: true,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'SPY累计回报',
+                            data: data.map(d => d.spy_cumulative * 100),
+                            borderColor: 'rgb(107, 114, 128)',
+                            backgroundColor: 'rgba(107, 114, 128, 0.1)',
+                            borderDash: [5, 5],
+                            fill: false,
+                            tension: 0.1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${context.raw.toFixed(2)}%`;
+                                }
+                            }
+                        },
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: '累计回报 (%)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: '日期'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 创建每日盈亏图表
+        function createDailyPnLChart(ctx) {
+            if (!performanceData || !performanceData.daily_data) return;
+            
+            const data = performanceData.daily_data;
+            
+            mainChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(d => d.date),
+                    datasets: [{
+                        label: '每日盈亏',
+                        data: data.map(d => d.daily_pnl),
+                        backgroundColor: data.map(d => d.daily_pnl >= 0 ? 'rgba(16, 185, 129, 0.7)' : 'rgba(239, 68, 68, 0.7)'),
+                        borderColor: data.map(d => d.daily_pnl >= 0 ? 'rgb(16, 185, 129)' : 'rgb(239, 68, 68)'),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `盈亏: ${formatCurrency(context.raw)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: function(value) {
+                                    return formatCurrency(value);
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: '每日盈亏'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: '日期'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 创建回撤图表
+        function createDrawdownChart(ctx) {
+            if (!performanceData || !performanceData.daily_data) return;
+            
+            // 计算回撤数据
+            const data = performanceData.daily_data;
+            const drawdownData = [];
+            
+            let peak = 0;
+            
+            for (let i = 0; i < data.length; i++) {
+                const strategyReturn = data[i].strategy_cumulative;
+                
+                // 更新峰值
+                if (strategyReturn > peak) {
+                    peak = strategyReturn;
+                }
+                
+                // 计算回撤
+                const drawdown = peak > 0 ? ((strategyReturn / peak) - 1) * 100 : 0;
+                
+                drawdownData.push({
+                    date: data[i].date,
+                    drawdown: drawdown
+                });
+            }
+            
+            mainChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: drawdownData.map(d => d.date),
+                    datasets: [{
+                        label: '回撤',
+                        data: drawdownData.map(d => d.drawdown),
+                        borderColor: 'rgb(239, 68, 68)',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        fill: true,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `回撤: ${context.raw.toFixed(2)}%`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: '回撤 (%)'
+                            },
+                            suggestedMin: performanceData.metrics.max_drawdown * 120, // 放大显示最大回撤
+                            suggestedMax: 0
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: '日期'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 创建波动率图表
+        function createVolatilityChart(ctx) {
+            if (!performanceData || !performanceData.daily_data) return;
+            
+            const data = performanceData.daily_data;
+            
+            // 计算20日滚动波动率
+            const rollingVolData = [];
+            const window = 20;
+            
+            for (let i = window; i < data.length; i++) {
+                const slice = data.slice(i - window, i);
+                const returns = slice.map(d => d.daily_return_pct / 100);
+                const mean = returns.reduce((sum, val) => sum + val, 0) / returns.length;
+                const variance = returns.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / returns.length;
+                const volatility = Math.sqrt(variance * 252) * 100; // 年化并转为百分比
+                
+                rollingVolData.push({
+                    date: data[i].date,
+                    volatility: volatility
+                });
+            }
+            
+            mainChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: rollingVolData.map(d => d.date),
+                    datasets: [{
+                        label: '20日滚动波动率',
+                        data: rollingVolData.map(d => d.volatility),
+                        borderColor: 'rgb(124, 58, 237)',
+                        backgroundColor: 'rgba(124, 58, 237, 0.1)',
+                        fill: true,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `波动率: ${context.raw.toFixed(2)}%`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: '年化波动率 (%)'
+                            },
+                            suggestedMin: 0
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: '日期'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 创建交易分布图表
+        function createTradeDistributionChart(ctx) {
+            if (!performanceData || !performanceData.daily_data) return;
+            
+            const data = performanceData.daily_data;
+            
+            // 计算收益分布
+            const returnBins = {};
+            const binSize = 0.5; // 0.5%为一个区间
+            
+            data.forEach(day => {
+                const return_pct = day.daily_return_pct;
+                const binKey = Math.floor(return_pct / binSize) * binSize;
+                
+                if (!returnBins[binKey]) {
+                    returnBins[binKey] = 0;
+                }
+                
+                returnBins[binKey]++;
+            });
+            
+            // 转换为数组
+            const binsArray = Object.entries(returnBins)
+                .map(([key, value]) => ({ bin: parseFloat(key), count: value }))
+                .sort((a, b) => a.bin - b.bin);
+            
+            mainChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: binsArray.map(b => `${b.bin}% to ${b.bin + binSize}%`),
+                    datasets: [{
+                        label: '收益分布',
+                        data: binsArray.map(b => b.count),
+                        backgroundColor: binsArray.map(b => b.bin >= 0 ? 'rgba(16, 185, 129, 0.7)' : 'rgba(239, 68, 68, 0.7)'),
+                        borderColor: binsArray.map(b => b.bin >= 0 ? 'rgb(16, 185, 129)' : 'rgb(239, 68, 68)'),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `次数: ${context.raw}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            title: {
+                                display: true,
+                                text: '交易次数'
+                            },
+                            suggestedMin: 0
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: '收益率区间'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 更新胜率图表
+        function updateWinRateChart() {
+            if (!performanceData || !performanceData.metrics) return;
+            
+            // 清除旧图表
+            if (winRateChart) {
+                winRateChart.destroy();
+            }
+            
+            const metrics = performanceData.metrics;
+            const win_rate = metrics.win_rate;
+            const lose_rate = 1 - win_rate;
+            
+            const ctx = document.getElementById('winRateChart').getContext('2d');
+            
+            winRateChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['盈利天数', '亏损天数'],
+                    datasets: [{
+                        data: [win_rate * 100, lose_rate * 100],
+                        backgroundColor: [
+                            'rgba(16, 185, 129, 0.7)',
+                            'rgba(239, 68, 68, 0.7)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.label}: ${context.raw.toFixed(1)}%`;
+                                }
+                            }
+                        },
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 更新月度收益图表
+        function updateMonthlyReturnChart() {
+            if (!performanceData || !performanceData.monthly_returns) return;
+            
+            // 清除旧图表
+            if (monthlyReturnChart) {
+                monthlyReturnChart.destroy();
+            }
+            
+            const monthlyData = performanceData.monthly_returns;
+            
+            const ctx = document.getElementById('monthlyReturnChart').getContext('2d');
+            
+            monthlyReturnChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: monthlyData.map(m => m.month),
+                    datasets: [{
+                        label: '策略月度收益',
+                        data: monthlyData.map(m => m.strategy_return),
+                        backgroundColor: monthlyData.map(m => m.strategy_return >= 0 ? 'rgba(16, 185, 129, 0.7)' : 'rgba(239, 68, 68, 0.7)'),
+                        borderColor: monthlyData.map(m => m.strategy_return >= 0 ? 'rgb(16, 185, 129)' : 'rgb(239, 68, 68)'),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `收益: ${context.raw.toFixed(2)}%`;
+                                }
+                            }
+                        },
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: '月度收益 (%)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 更新风险指标图表
+        function updateRiskMetricsChart() {
+            if (!performanceData || !performanceData.metrics) return;
+            
+            // 清除旧图表
+            if (riskMetricsChart) {
+                riskMetricsChart.destroy();
+            }
+            
+            const metrics = performanceData.metrics;
+            
+            // 选择要显示的风险指标
+            const riskMetrics = [
+                { name: '夏普比率', value: metrics.sharpe_ratio },
+                { name: '最大回撤', value: Math.abs(metrics.max_drawdown * 100) },
+                { name: '盈亏比', value: metrics.profit_loss_ratio },
+                { name: '年化收益', value: metrics.annualized_return * 100 }
+            ];
+            
+            const ctx = document.getElementById('riskMetricsChart').getContext('2d');
+            
+            riskMetricsChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: riskMetrics.map(m => m.name),
+                    datasets: [{
+                        label: '风险指标',
+                        data: riskMetrics.map(m => m.value),
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                        borderColor: 'rgb(59, 130, 246)',
+                        pointBackgroundColor: 'rgb(59, 130, 246)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgb(59, 130, 246)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            min: 0,
+                            ticks: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 更新数据表格
+        function updateDataTable() {
+            if (!performanceData || !performanceData.daily_data) return;
+            
+            const data = performanceData.daily_data;
+            const tableBody = document.getElementById('dataTableBody');
+            
+            tableBody.innerHTML = '';
+            
+            // 显示最近的数据，逆序排列
+            const reversedData = [...data].reverse();
+            
+            reversedData.forEach(day => {
+                const relativeClass = day.relative_performance >= 0 ? 'text-green-600' : 'text-red-600';
+                const returnClass = day.daily_return_pct >= 0 ? 'text-green-600' : 'text-red-600';
+                const pnlClass = day.daily_pnl >= 0 ? 'text-green-600' : 'text-red-600';
+                
+                tableBody.innerHTML += `
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${day.date}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatCurrency(day.equity)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm ${pnlClass}">${formatCurrency(day.daily_pnl)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm ${returnClass}">${day.daily_return_pct.toFixed(2)}%</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">${day.spy_return_pct.toFixed(2)}%</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm ${relativeClass}">${day.relative_performance.toFixed(2)}%</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium ${day.strategy_cumulative >= 0 ? 'text-green-600' : 'text-red-600'}">${(day.strategy_cumulative * 100).toFixed(2)}%</td>
+                    </tr>
+                `;
+            });
+        }
+        
+        // 导出CSV数据
+        function exportCSV() {
+            if (!performanceData || !performanceData.daily_data) {
+                alert('没有可导出的数据');
+                return;
+            }
+            
+            const data = performanceData.daily_data;
+            
+            // 创建CSV头部
+            let csv = 'Date,Equity,Daily PnL,Daily Return %,SPY Return %,Relative Performance,Cumulative Return %\n';
+            
+            // 添加数据行
+            data.forEach(day => {
+                csv += `${day.date},`;
+                csv += `${day.equity},`;
+                csv += `${day.daily_pnl},`;
+                csv += `${day.daily_return_pct},`;
+                csv += `${day.spy_return_pct},`;
+                csv += `${day.relative_performance},`;
+                csv += `${day.strategy_cumulative * 100}\n`;
+            });
+            
+            // 创建下载链接
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `performance_data_${new Date().toISOString().slice(0, 10)}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 加载性能数据
+            loadPerformanceData();
+            
+            // 设置刷新按钮点击事件
+            document.getElementById('refreshBtn').addEventListener('click', loadPerformanceData);
+            
+            // 设置时间范围变更事件
+            document.getElementById('timeRange').addEventListener('change', loadPerformanceData);
+            
+            // 设置图表类型变更事件
+            document.getElementById('chartType').addEventListener('change', function() {
+                updateAllCharts();
+            });
+            
+            // 设置基准选择变更事件
+            document.getElementById('benchmarkSPY').addEventListener('change', updateAllCharts);
+            document.getElementById('benchmarkQQQ').addEventListener('change', updateAllCharts);
+            document.getElementById('benchmarkDIA').addEventListener('change', updateAllCharts);
+            
+            // 设置导出按钮点击事件
+            document.getElementById('exportDataBtn').addEventListener('click', exportCSV);
+        });
+    </script>
+</body>
+</html>

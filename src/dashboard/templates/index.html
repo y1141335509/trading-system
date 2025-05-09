@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>交易系统仪表盘</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans leading-normal tracking-normal">
+    <!-- 导航栏 -->
+    <nav class="bg-white border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        <span class="text-xl font-bold text-blue-600">交易系统仪表盘</span>
+                    </div>
+                    <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                        <a href="./index.html" class="border-blue-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            首页
+                        </a>
+                        <a href="./charts.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            图表
+                        </a>
+                        <a href="./reports.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            报告
+                        </a>
+                        <a href="./settings.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            设置
+                        </a>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <div id="marketStatus" class="mr-4">
+                        <span class="px-2 py-1 text-xs rounded-full bg-gray-200 text-gray-700">
+                            正在加载...
+                        </span>
+                    </div>
+                    <div id="lastUpdated" class="text-sm text-gray-500">
+                        上次更新: 正在加载...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容区域 -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <!-- 系统状态卡片 -->
+        <div class="mb-6">
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 bg-white border-b border-gray-200">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-semibold text-gray-900">系统状态</h2>
+                        <button id="refreshBtn" class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+                            <i class="fas fa-sync-alt mr-1"></i> 刷新
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="p-4 bg-gray-50 rounded">
+                            <div class="text-sm text-gray-500">账户价值</div>
+                            <div id="accountEquity" class="text-xl font-bold text-gray-900">$0.00</div>
+                        </div>
+                        <div class="p-4 bg-gray-50 rounded">
+                            <div class="text-sm text-gray-500">可用资金</div>
+                            <div id="accountCash" class="text-xl font-bold text-gray-900">$0.00</div>
+                        </div>
+                        <div class="p-4 bg-gray-50 rounded">
+                            <div class="text-sm text-gray-500">持仓数量</div>
+                            <div id="positionCount" class="text-xl font-bold text-gray-900">0</div>
+                        </div>
+                        <div class="p-4 bg-gray-50 rounded">
+                            <div class="text-sm text-gray-500">系统状态</div>
+                            <div id="systemStatus" class="text-xl font-bold text-gray-900">
+                                <span class="px-2 py-1 text-xs rounded-full bg-gray-200 text-gray-700">
+                                    检查中...
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 性能图表行 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <!-- 累计回报图表 -->
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 bg-white border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">累计回报</h3>
+                    <div class="chart-container">
+                        <canvas id="returnChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 每日盈亏图表 -->
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 bg-white border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">每日盈亏</h3>
+                    <div class="chart-container">
+                        <canvas id="pnlChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 性能指标卡片 -->
+        <div class="mb-6">
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 bg-white border-b border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">性能指标</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="metricsContainer">
+                        <div class="p-4 bg-gray-50 rounded">
+                            <div class="text-sm text-gray-500">年化收益</div>
+                            <div class="text-xl font-bold text-gray-900">--</div>
+                        </div>
+                        <div class="p-4 bg-gray-50 rounded">
+                            <div class="text-sm text-gray-500">胜率</div>
+                            <div class="text-xl font-bold text-gray-900">--</div>
+                        </div>
+                        <div class="p-4 bg-gray-50 rounded">
+                            <div class="text-sm text-gray-500">夏普比率</div>
+                            <div class="text-xl font-bold text-gray-900">--</div>
+                        </div>
+                        <div class="p-4 bg-gray-50 rounded">
+                            <div class="text-sm text-gray-500">最大回撤</div>
+                            <div class="text-xl font-bold text-gray-900">--</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 持仓表格 -->
+        <div class="mb-6">
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 bg-white border-b border-gray-200">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">当前持仓</h3>
+                        <div class="text-sm text-gray-500" id="positionsLastUpdated">
+                            更新时间: --
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">股票</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">数量</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">现价</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">买入价</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">市值</th>
+                                    <th scope="col" class="px-6 py-3 text-left text;-xs font-medium text-gray-500 uppercase tracking-wider">盈亏</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">盈亏%</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">风险</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200" id="positionsTableBody">
+                                <tr>
+                                    <td colspan="8" class="px-6 py-4 text-center text-sm text-gray-500">
+                                        加载中...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 最近交易 -->
+        <div class="mb-6">
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 bg-white border-b border-gray-200">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">最近交易</h3>
+                        <div class="text-sm text-gray-500" id="tradesLastUpdated">
+                            更新时间: --
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">时间</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">股票</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">数量</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">价格</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">金额</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200" id="tradesTableBody">
+                                <tr>
+                                    <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
+                                        加载中...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 最新报告 -->
+        <div class="mb-6">
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 bg-white border-b border-gray-200">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">最新报告</h3>
+                        <a href="/reports" class="text-blue-600 hover:text-blue-800">
+                            查看全部 <i class="fas fa-arrow-right text-xs"></i>
+                        </a>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">日期</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">文件名</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">大小</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200" id="reportsTableBody">
+                                <tr>
+                                    <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
+                                        加载中...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-white border-t border-gray-200 py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between">
+                <div class="text-sm text-gray-500">
+                    &copy; 2025 交易系统仪表盘
+                </div>
+                <div class="text-sm text-gray-500">
+                    <a href="/about" class="text-gray-500 hover:text-gray-700">关于</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // 格式化金额
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('zh-CN', { style: 'currency', currency: 'USD' }).format(value);
+        }
+
+        // 格式化百分比
+        function formatPercent(value) {
+            return new Intl.NumberFormat('zh-CN', { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value / 100);
+        }
+
+        // 设置市场状态样式
+        function setMarketStatus(isOpen) {
+            const marketStatusEl = document.getElementById('marketStatus');
+            if (isOpen) {
+                marketStatusEl.innerHTML = '<span class="px-2 py-1 text-xs rounded-full bg-green-200 text-green-800">市场开盘中</span>';
+            } else {
+                marketStatusEl.innerHTML = '<span class="px-2 py-1 text-xs rounded-full bg-red-200 text-red-800">市场已收盘</span>';
+            }
+        }
+
+        // 创建累计回报图表
+        let returnChart = null;
+        function createReturnChart(data) {
+            if (returnChart) {
+                returnChart.destroy();
+            }
+            
+            const ctx = document.getElementById('returnChart').getContext('2d');
+            returnChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(item => item.date),
+                    datasets: [
+                        {
+                            label: '策略回报',
+                            data: data.map(item => item.cumulative_return * 100),
+                            borderColor: 'rgb(59, 130, 246)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            fill: true,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'SPY回报',
+                            data: data.map(item => item.spy_cumulative_return * 100),
+                            borderColor: 'rgb(107, 114, 128)',
+                            backgroundColor: 'rgba(107, 114, 128, 0.1)',
+                            borderDash: [5, 5],
+                            fill: false,
+                            tension: 0.1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${context.raw.toFixed(2)}%`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: '累计回报 (%)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 创建每日盈亏图表
+        let pnlChart = null;
+        function createPnlChart(data) {
+            if (pnlChart) {
+                pnlChart.destroy();
+            }
+            
+            const ctx = document.getElementById('pnlChart').getContext('2d');
+            pnlChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.map(item => item.date),
+                    datasets: [{
+                        label: '每日盈亏',
+                        data: data.map(item => item.daily_pnl),
+                        backgroundColor: data.map(item => item.daily_pnl >= 0 ? 'rgba(16, 185, 129, 0.7)' : 'rgba(239, 68, 68, 0.7)'),
+                        borderColor: data.map(item => item.daily_pnl >= 0 ? 'rgb(16, 185, 129)' : 'rgb(239, 68, 68)'),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `盈亏: ${formatCurrency(context.raw)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: function(value) {
+                                    return formatCurrency(value);
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: '每日盈亏'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 加载系统状态
+        function loadSystemStatus() {
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status !== 'success') {
+                        console.error('加载系统状态失败:', data.message);
+                        return;
+                    }
+                    
+                    // 更新市场状态
+                    setMarketStatus(data.market.is_open);
+                    
+                    // 更新账户信息
+                    document.getElementById('accountEquity').textContent = formatCurrency(data.account.equity);
+                    document.getElementById('accountCash').textContent = formatCurrency(data.account.cash);
+                    
+                    // 更新系统状态
+                    const lastCheck = data.system.last_health_check;
+                    const systemStatusEl = document.getElementById('systemStatus');
+                    
+                    if (lastCheck) {
+                        const checkTime = new Date(lastCheck);
+                        const now = new Date();
+                        const diffMinutes = Math.round((now - checkTime) / (1000 * 60));
+                        
+                        if (diffMinutes < 20) {
+                            systemStatusEl.innerHTML = '<span class="px-2 py-1 text-xs rounded-full bg-green-200 text-green-800">正常运行</span>';
+                        } else if (diffMinutes < 60) {
+                            systemStatusEl.innerHTML = '<span class="px-2 py-1 text-xs rounded-full bg-yellow-200 text-yellow-800">需要检查</span>';
+                        } else {
+                            systemStatusEl.innerHTML = '<span class="px-2 py-1 text-xs rounded-full bg-red-200 text-red-800">可能异常</span>';
+                        }
+                    } else {
+                        systemStatusEl.innerHTML = '<span class="px-2 py-1 text-xs rounded-full bg-gray-200 text-gray-800">状态未知</span>';
+                    }
+                    
+                    // 更新上次更新时间
+                    document.getElementById('lastUpdated').textContent = `上次更新: ${data.system.current_time}`;
+                })
+                .catch(error => {
+                    console.error('请求系统状态出错:', error);
+                });
+        }
+
+        // 加载性能数据
+        function loadPerformanceData() {
+            fetch('/api/performance')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status !== 'success') {
+                        console.error('加载性能数据失败:', data.message);
+                        return;
+                    }
+                    
+                    // 更新累计回报图表
+                    createReturnChart(data.daily_data);
+                    
+                    // 更新每日盈亏图表
+                    createPnlChart(data.daily_data.slice(-30));
+                    
+                    // 更新性能指标
+                    const metrics = data.metrics;
+                    const metricsContainer = document.getElementById('metricsContainer');
+                    
+                    // 清空现有指标
+                    metricsContainer.innerHTML = '';
+                    
+                    // 添加性能指标卡片
+                    const metricsToShow = [
+                        { name: '年化收益', value: metrics.annualized_return, format: 'percent', class: metrics.annualized_return >= 0 ? 'text-green-600' : 'text-red-600' },
+                        { name: '胜率', value: metrics.win_rate, format: 'percent', class: '' },
+                        { name: '夏普比率', value: metrics.sharpe_ratio, format: 'number', class: metrics.sharpe_ratio >= 1 ? 'text-green-600' : '' },
+                        { name: '最大回撤', value: metrics.max_drawdown, format: 'percent', class: 'text-red-600' },
+                        { name: '总盈亏', value: metrics.total_pnl, format: 'currency', class: metrics.total_pnl >= 0 ? 'text-green-600' : 'text-red-600' },
+                        { name: '平均日盈亏', value: metrics.avg_daily_pnl, format: 'currency', class: metrics.avg_daily_pnl >= 0 ? 'text-green-600' : 'text-red-600' },
+                        { name: '盈亏比', value: metrics.profit_loss_ratio, format: 'number', class: metrics.profit_loss_ratio >= 1 ? 'text-green-600' : '' },
+                        { name: '相对表现', value: metrics.avg_relative_performance, format: 'percent', class: metrics.avg_relative_performance >= 0 ? 'text-green-600' : 'text-red-600' }
+                    ];
+                    
+                    metricsToShow.forEach(metric => {
+                        let formattedValue = '--';
+                        
+                        if (metric.value !== undefined && metric.value !== null) {
+                            if (metric.format === 'percent') {
+                                formattedValue = (metric.value * 100).toFixed(2) + '%';
+                            } else if (metric.format === 'currency') {
+                                formattedValue = formatCurrency(metric.value);
+                            } else {
+                                formattedValue = metric.value.toFixed(2);
+                            }
+                        }
+                        
+                        metricsContainer.innerHTML += `
+                            <div class="p-4 bg-gray-50 rounded">
+                                <div class="text-sm text-gray-500">${metric.name}</div>
+                                <div class="text-xl font-bold ${metric.class || 'text-gray-900'}">${formattedValue}</div>
+                            </div>
+                        `;
+                    });
+                })
+                .catch(error => {
+                    console.error('请求性能数据出错:', error);
+                });
+        }
+
+        // 加载持仓数据
+        function loadPositionsData() {
+            fetch('/api/positions')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status !== 'success') {
+                        console.error('加载持仓数据失败:', data.message);
+                        return;
+                    }
+                    
+                    // 更新持仓数量
+                    document.getElementById('positionCount').textContent = data.positions.length;
+                    
+                    // 更新持仓表格
+                    const tableBody = document.getElementById('positionsTableBody');
+                    
+                    if (data.positions.length === 0) {
+                        tableBody.innerHTML = `
+                            <tr>
+                                <td colspan="8" class="px-6 py-4 text-center text-sm text-gray-500">
+                                    当前无持仓
+                                </td>
+                            </tr>
+                        `;
+                    } else {
+                        tableBody.innerHTML = '';
+                        
+                        data.positions.forEach(position => {
+                            const plClass = position.unrealized_pl >= 0 ? 'text-green-600' : 'text-red-600';
+                            const riskClass = position.risk_category === 'low' ? 'bg-green-100 text-green-800' : 
+                                              position.risk_category === 'medium' ? 'bg-yellow-100 text-yellow-800' : 
+                                              'bg-red-100 text-red-800';
+                            
+                            tableBody.innerHTML += `
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${position.symbol}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${position.quantity.toFixed(2)}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatCurrency(position.current_price)}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatCurrency(position.entry_price)}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatCurrency(position.market_value)}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm ${plClass}">${formatCurrency(position.unrealized_pl)}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm ${plClass}">${position.unrealized_plpc.toFixed(2)}%</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                        <span class="px-2 py-1 text-xs rounded-full ${riskClass}">
+                                            ${position.risk_category === 'low' ? '低' : position.risk_category === 'medium' ? '中' : '高'}
+                                        </span>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                    }
+                    
+                    // 更新上次更新时间
+                    document.getElementById('positionsLastUpdated').textContent = `更新时间: ${data.last_updated}`;
+                })
+                .catch(error => {
+                    console.error('请求持仓数据出错:', error);
+                });
+        }
+
+        // 加载交易数据
+        function loadTradesData() {
+            fetch('/api/trades')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status !== 'success') {
+                        console.error('加载交易数据失败:', data.message);
+                        return;
+                    }
+                    
+                    // 更新交易表格
+                    const tableBody = document.getElementById('tradesTableBody');
+                    
+                    if (data.trades.length === 0) {
+                        tableBody.innerHTML = `
+                            <tr>
+                                <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
+                                    最近无交易记录
+                                </td>
+                            </tr>
+                        `;
+                    } else {
+                        tableBody.innerHTML = '';
+                        
+                        data.trades.forEach(trade => {
+                            const sideClass = trade.side === 'buy' ? 'text-green-600' : 'text-red-600';
+                            const sideText = trade.side === 'buy' ? '买入' : '卖出';
+                            
+                            // 获取日期部分
+                            const datePart = trade.filled_at ? trade.filled_at.split(' ')[0] : '';
+                            
+                            tableBody.innerHTML += `
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${datePart}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${trade.symbol}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm ${sideClass}">${sideText}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${trade.quantity.toFixed(2)}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatCurrency(trade.price)}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatCurrency(trade.amount)}</td>
+                                </tr>
+                            `;
+                        });
+                    }
+                    
+                    // 更新上次更新时间
+                    document.getElementById('tradesLastUpdated').textContent = `更新时间: ${data.last_updated}`;
+                })
+                .catch(error => {
+                    console.error('请求交易数据出错:', error);
+                });
+        }
+
+        // 加载报告数据
+        function loadReportsData() {
+            fetch('/api/reports')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status !== 'success') {
+                        console.error('加载报告数据失败:', data.message);
+                        return;
+                    }
+                    
+                    // 更新报告表格
+                    const tableBody = document.getElementById('reportsTableBody');
+                    
+                    if (data.reports.length === 0) {
+                        tableBody.innerHTML = `
+                            <tr>
+                                <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
+                                    没有找到报告文件
+                                </td>
+                            </tr>
+                        `;
+                    } else {
+                        tableBody.innerHTML = '';
+                        
+                        // 只显示最近5个报告
+                        const recentReports = data.reports.slice(0, 5);
+                        
+                        recentReports.forEach(report => {
+                            tableBody.innerHTML += `
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${report.date}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${report.filename}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${report.size_kb.toFixed(2)} KB</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <a href="/report/${report.filename}" target="_blank" class="text-blue-600 hover:text-blue-800">
+                                            查看 <i class="fas fa-external-link-alt text-xs"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('请求报告数据出错:', error);
+                });
+        }
+
+        // 加载所有数据
+        function loadAllData() {
+            loadSystemStatus();
+            loadPerformanceData();
+            loadPositionsData();
+            loadTradesData();
+            loadReportsData();
+        }
+
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 加载所有数据
+            loadAllData();
+            
+            // 设置刷新按钮点击事件
+            document.getElementById('refreshBtn').addEventListener('click', function() {
+                loadAllData();
+            });
+            
+            // 设置定时刷新 (每5分钟)
+            setInterval(loadAllData, 5 * 60 * 1000);
+        });
+    </script>
+</body>
+</html>

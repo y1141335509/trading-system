@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>报告中心 - 交易系统仪表盘</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 font-sans leading-normal tracking-normal">
+    <!-- 导航栏 -->
+    <nav class="bg-white border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        <span class="text-xl font-bold text-blue-600">交易系统仪表盘</span>
+                    </div>
+                    <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                        <a href="./index.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            首页
+                        </a>
+                        <a href="./charts.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            图表
+                        </a>
+                        <a href="./reports.html" class="border-blue-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            报告
+                        </a>
+                        <a href="./settings.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            设置
+                        </a>
+                    </div>
+                </div>
+                <div id="lastUpdated" class="flex items-center text-sm text-gray-500">
+                    上次更新: 正在加载...
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容区域 -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <!-- 报告列表 -->
+        <div class="mb-6">
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 bg-white border-b border-gray-200">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-semibold text-gray-900">报告列表</h2>
+                        <div class="flex space-x-2">
+                            <button id="refreshBtn" class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+                                <i class="fas fa-sync-alt mr-1"></i> 刷新
+                            </button>
+                            <button id="generateReportBtn" class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm">
+                                <i class="fas fa-file-alt mr-1"></i> 生成新报告
+                            </button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">日期</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">文件名</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">大小</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">修改时间</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200" id="reportsTableBody">
+                                <tr>
+                                    <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">
+                                        加载中...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-4 text-sm text-gray-500" id="reportCount"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 报告预览 -->
+        <div id="reportPreviewContainer" class="mb-6 hidden">
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6 bg-white border-b border-gray-200">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-semibold text-gray-900">报告预览</h2>
+                        <button id="closePreviewBtn" class="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 text-sm">
+                            <i class="fas fa-times mr-1"></i> 关闭预览
+                        </button>
+                    </div>
+                    <div class="border border-gray-200 rounded-lg p-4 h-[600px]">
+                        <iframe id="reportIframe" src="" class="w-full h-full"></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-white border-t border-gray-200 py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between">
+                <div class="text-sm text-gray-500">
+                    &copy; 2025 交易系统仪表盘
+                </div>
+                <div class="text-sm text-gray-500">
+                    <a href="/about" class="text-gray-500 hover:text-gray-700">关于</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 生成报告对话框 -->
+    <div id="generateReportModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 hidden flex items-center justify-center">
+        <div class="bg-white rounded-lg overflow-hidden shadow-xl transform transition-all sm:max-w-lg sm:w-full">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div class="sm:flex sm:items-start">
+                    <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                        <i class="fas fa-file-alt text-blue-600"></i>
+                    </div>
+                    <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">生成新报告</h3>
+                        <div class="mt-2">
+                            <p class="text-sm text-gray-500">
+                                请选择要生成的报告类型和日期范围。
+                            </p>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <label for="reportType" class="block text-sm font-medium text-gray-700">报告类型</label>
+                            <select id="reportType" name="reportType" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                                <option value="daily">每日报告</option>
+                                <option value="weekly">周报</option>
+                                <option value="monthly">月报</option>
+                                <option value="performance">绩效分析报告</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <label for="reportDate" class="block text-sm font-medium text-gray-700">报告日期</label>
+                            <input type="date" id="reportDate" name="reportDate" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                        </div>
+                        
+                        <div class="mt-4" id="daysRangeContainer">
+                            <label for="daysRange" class="block text-sm font-medium text-gray-700">分析天数</label>
+                            <select id="daysRange" name="daysRange" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                                <option value="7">7天</option>
+                                <option value="14">14天</option>
+                                <option value="30" selected>30天</option>
+                                <option value="60">60天</option>
+                                <option value="90">90天</option>
+                                <option value="180">180天</option>
+                                <option value="365">365天</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button type="button" id="confirmGenerateBtn" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                    生成报告
+                </button>
+                <button type="button" id="cancelGenerateBtn" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                    取消
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 加载报告列表
+            loadReports();
+            
+            // 设置刷新按钮点击事件
+            document.getElementById('refreshBtn').addEventListener('click', loadReports);
+            
+            // 设置生成报告按钮点击事件
+            document.getElementById('generateReportBtn').addEventListener('click', function() {
+                const modal = document.getElementById('generateReportModal');
+                modal.classList.remove('hidden');
+                
+                // 设置默认日期为今天
+                const today = new Date();
+                const dateField = document.getElementById('reportDate');
+                dateField.value = formatDateForInput(today);
+            });
+            
+            // 设置取消按钮点击事件
+            document.getElementById('cancelGenerateBtn').addEventListener('click', function() {
+                const modal = document.getElementById('generateReportModal');
+                modal.classList.add('hidden');
+            });
+            
+            // 设置确认生成按钮点击事件
+            document.getElementById('confirmGenerateBtn').addEventListener('click', function() {
+                generateReport();
+            });
+            
+            // 设置关闭预览按钮点击事件
+            document.getElementById('closePreviewBtn').addEventListener('click', function() {
+                const container = document.getElementById('reportPreviewContainer');
+                container.classList.add('hidden');
+                document.getElementById('reportIframe').src = '';
+            });
+            
+            // 设置报告类型变更事件
+            document.getElementById('reportType').addEventListener('change', function() {
+                const reportType = this.value;
+                const daysContainer = document.getElementById('daysRangeContainer');
+                
+                // 仅对绩效分析报告显示天数选择
+                if (reportType === 'performance') {
+                    daysContainer.classList.remove('hidden');
+                } else {
+                    daysContainer.classList.add('hidden');
+                }
+            });
+        });
+        
+        // 格式化日期为输入字段格式 (YYYY-MM-DD)
+        function formatDateForInput(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        
+        // 从服务器获取报告列表
+        function loadReports() {
+            fetch('/api/reports')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        displayReports(data.reports);
+                        document.getElementById('reportCount').textContent = `共找到 ${data.count} 个报告`;
+                        document.getElementById('lastUpdated').textContent = `上次更新: ${new Date().toLocaleString()}`;
+                    } else {
+                        console.error('加载报告失败:', data.message);
+                        document.getElementById('reportsTableBody').innerHTML = `
+                            <tr>
+                                <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">
+                                    加载报告失败: ${data.message}
+                                </td>
+                            </tr>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('请求报告出错:', error);
+                    document.getElementById('reportsTableBody').innerHTML = `
+                        <tr>
+                            <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">
+                                加载报告时出错, 请稍后再试
+                            </td>
+                        </tr>
+                    `;
+                });
+        }
+        
+        // 显示报告列表
+        function displayReports(reports) {
+            const tableBody = document.getElementById('reportsTableBody');
+            
+            if (reports.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">
+                            没有找到报告
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tableBody.innerHTML = '';
+            
+            reports.forEach(report => {
+                tableBody.innerHTML += `
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${report.date}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${report.filename}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${report.size_kb.toFixed(2)} KB</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${report.modified}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <div class="flex space-x-2">
+                                <button onclick="previewReport('${report.filename}')" class="text-blue-600 hover:text-blue-800">
+                                    <i class="fas fa-eye"></i> 预览
+                                </button>
+                                <a href="/report/${report.filename}" target="_blank" class="text-green-600 hover:text-green-800">
+                                    <i class="fas fa-external-link-alt"></i> 打开
+                                </a>
+                                <a href="/report/${report.filename}" download class="text-purple-600 hover:text-purple-800">
+                                    <i class="fas fa-download"></i> 下载
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+        
+        // 预览报告
+        function previewReport(filename) {
+            const iframe = document.getElementById('reportIframe');
+            const container = document.getElementById('reportPreviewContainer');
+            
+            iframe.src = `/report/${filename}`;
+            container.classList.remove('hidden');
+            
+            // 滚动到预览区域
+            container.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // 生成新报告
+        function generateReport() {
+            const reportType = document.getElementById('reportType').value;
+            const reportDate = document.getElementById('reportDate').value;
+            const daysRange = document.getElementById('daysRange').value;
+            
+            // 显示加载状态
+            const confirmBtn = document.getElementById('confirmGenerateBtn');
+            const originalText = confirmBtn.innerHTML;
+            confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 生成中...';
+            confirmBtn.disabled = true;
+            
+            // 构建请求数据
+            const requestData = {
+                type: reportType,
+                date: reportDate,
+                days: parseInt(daysRange)
+            };
+            
+            // 发送请求生成报告
+            fetch('/api/generate_report', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('报告生成成功');
+                    // 关闭对话框
+                    document.getElementById('generateReportModal').classList.add('hidden');
+                    // 刷新报告列表
+                    loadReports();
+                    
+                    // 如果返回了报告文件名，可以预览
+                    if (data.filename) {
+                        setTimeout(() => {
+                            previewReport(data.filename);
+                        }, 500);
+                    }
+                } else {
+                    alert('报告生成失败: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('生成报告请求出错:', error);
+                alert('生成报告时发生错误，请稍后再试');
+            })
+            .finally(() => {
+                // 恢复按钮状态
+                confirmBtn.innerHTML = originalText;
+                confirmBtn.disabled = false;
+            });
+        }
+    </script>
+</body>
+</html>

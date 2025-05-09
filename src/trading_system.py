@@ -781,6 +781,9 @@ def run_intelligent_trading_system(symbols=None, schedule_retrain_enabled=True, 
     # 生成每日报告
     if datetime.now().hour >= 16:  # 如果当前时间在下午4点以后
         generate_daily_report()
+
+    # 定时任务设置
+    schedule.every().day.at("16:30").do(generate_daily_report)
     
     # 设置定期任务
     if schedule_retrain_enabled:

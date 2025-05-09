@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>关于 - 交易系统仪表盘</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 font-sans leading-normal tracking-normal">
+    <!-- 导航栏 -->
+    <nav class="bg-white border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        <span class="text-xl font-bold text-blue-600">交易系统仪表盘</span>
+                    </div>
+                    <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                        <a href="./index.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            首页
+                        </a>
+                        <a href="./charts.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            图表
+                        </a>
+                        <a href="./reports.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            报告
+                        </a>
+                        <a href="./settings.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            设置
+                        </a>
+                    </div>
+                </div>
+                <div id="systemVersion" class="flex items-center text-sm text-gray-500">
+                    版本: 加载中...
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容区域 -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+            <div class="p-6 bg-white border-b border-gray-200">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">关于交易系统仪表盘</h2>
+                
+                <div class="mb-6">
+                    <p class="mb-4">
+                        交易系统仪表盘是一个功能强大的可视化和管理工具，设计用于监控和控制智能交易系统。
+                        它提供了直观的界面，使您能够轻松查看交易表现、管理设置并生成详细报告。
+                    </p>
+                    
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">主要特性</h3>
+                    <ul class="list-disc pl-5 mb-4 space-y-1">
+                        <li>实时监控交易表现和账户状态</li>
+                        <li>详细的图表分析和性能指标</li>
+                        <li>交易记录和持仓管理</li>
+                        <li>定制化报告生成和导出</li>
+                        <li>完整的系统设置和配置管理</li>
+                        <li>风险管理和资金分配工具</li>
+                        <li>模型训练和优化界面</li>
+                    </ul>
+                </div>
+                
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">系统信息</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">系统版本</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" id="versionInfo">加载中...</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Python 版本</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" id="pythonVersion">加载中...</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">运行环境</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" id="environment">加载中...</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">启动时间</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" id="startTime">加载中...</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">已运行时间</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" id="uptime">加载中...</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">运行模式</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" id="tradingMode">加载中...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">核心组件</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">组件</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">版本</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200" id="componentsTableBody">
+                                <tr>
+                                    <td colspan="3" class="px-6 py-4 text-center text-sm text-gray-500">加载中...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">使用技术</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="p-4 bg-gray-50 rounded flex items-center justify-center">
+                            <div class="text-center">
+                                <i class="fab fa-python text-3xl text-blue-600 mb-2"></i>
+                                <div class="text-sm font-medium">Python</div>
+                            </div>
+                        </div>
+                        <div class="p-4 bg-gray-50 rounded flex items-center justify-center">
+                            <div class="text-center">
+                                <i class="fab fa-js text-3xl text-yellow-500 mb-2"></i>
+                                <div class="text-sm font-medium">JavaScript</div>
+                            </div>
+                        </div>
+                        <div class="p-4 bg-gray-50 rounded flex items-center justify-center">
+                            <div class="text-center">
+                                <i class="fas fa-database text-3xl text-green-600 mb-2"></i>
+                                <div class="text-sm font-medium">MySQL</div>
+                            </div>
+                        </div>
+                        <div class="p-4 bg-gray-50 rounded flex items-center justify-center">
+                            <div class="text-center">
+                                <i class="fab fa-docker text-3xl text-blue-500 mb-2"></i>
+                                <div class="text-sm font-medium">Docker</div>
+                            </div>
+                        </div>
+                        <div class="p-4 bg-gray-50 rounded flex items-center justify-center">
+                            <div class="text-center">
+                                <i class="fab fa-html5 text-3xl text-orange-600 mb-2"></i>
+                                <div class="text-sm font-medium">HTML5</div>
+                            </div>
+                        </div>
+                        <div class="p-4 bg-gray-50 rounded flex items-center justify-center">
+                            <div class="text-center">
+                                <i class="fab fa-css3-alt text-3xl text-blue-600 mb-2"></i>
+                                <div class="text-sm font-medium">CSS3</div>
+                            </div>
+                        </div>
+                        <div class="p-4 bg-gray-50 rounded flex items-center justify-center">
+                            <div class="text-center">
+                                <i class="fas fa-chart-line text-3xl text-purple-600 mb-2"></i>
+                                <div class="text-sm font-medium">Chart.js</div>
+                            </div>
+                        </div>
+                        <div class="p-4 bg-gray-50 rounded flex items-center justify-center">
+                            <div class="text-center">
+                                <i class="fas fa-brain text-3xl text-red-600 mb-2"></i>
+                                <div class="text-sm font-medium">TensorFlow</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-white border-t border-gray-200 py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between">
+                <div class="text-sm text-gray-500">
+                    &copy; 2025 交易系统仪表盘
+                </div>
+                <div class="text-sm text-gray-500">
+                    构建于 <span id="buildDate">加载中...</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 加载系统信息
+            fetch('/api/system_info')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // 更新版本信息
+                        document.getElementById('systemVersion').textContent = `版本: ${data.version}`;
+                        document.getElementById('versionInfo').textContent = data.version;
+                        document.getElementById('pythonVersion').textContent = data.python_version;
+                        document.getElementById('environment').textContent = data.environment;
+                        document.getElementById('startTime').textContent = data.start_time;
+                        document.getElementById('uptime').textContent = data.uptime;
+                        document.getElementById('tradingMode').textContent = data.trading_mode === 'paper' ? '模拟交易' : '实盘交易';
+                        document.getElementById('buildDate').textContent = data.build_date;
+                        
+                        // 更新组件表格
+                        const componentsTable = document.getElementById('componentsTableBody');
+                        componentsTable.innerHTML = '';
+                        
+                        data.components.forEach(component => {
+                            const statusClass = component.status === 'active' ? 'text-green-600' : 'text-red-600';
+                            const statusText = component.status === 'active' ? '正常' : '异常';
+                            
+                            componentsTable.innerHTML += `
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${component.name}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${component.version}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm ${statusClass}">${statusText}</td>
+                                </tr>
+                            `;
+                        });
+                    } else {
+                        console.error('加载系统信息失败:', data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('请求系统信息出错:', error);
+                });
+        });
+    </script>
+</body>
+</html>
