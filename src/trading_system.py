@@ -33,16 +33,16 @@ logger = logging.getLogger(__name__)
 # 设置目标池
 SYMBOLS = [
     # 科技股
-    'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'NVDA', 'TSLA', 'AMD', 'INTC', 'CRM', 'ADBE', 'CSCO', 'ORCL', 'IBM', 'QCOM', 'NFLX',
+    'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'NVDA', 'TSLA', 'AMD', 'INTC', 'CRM', 'ADBE', 'CSCO', 'ORCL', 'IBM', 'QCOM', 'NFLX', 'TSMC', 'AVGO', 'ASML', 'MU',
     
     # 金融股
     'JPM', 'BAC', 'GS', 'MS', 'V', 'MA', 'WFC', 'C', 'AXP', 'BLK', 'COF', 'USB', 'PNC', 'SCHW',
     
     # 医疗健康
-    'JNJ', 'PFE', 'UNH', 'ABBV', 'MRK', 'LLY', 'BMY', 'TMO', 'DHR', 'ABT', 'AMGN', 'CVS', 'GILD', 'ISRG', 'MDT',
+    'JNJ', 'PFE', 'UNH', 'ABBV', 'MRK', 'LLY', 'BMY', 'TMO', 'DHR', 'ABT', 'AMGN', 'CVS', 'GILD', 'ISRG', 'MDT', 'NVO', 'DXCM', 'MDGL', 
     
     # 消费品
-    'WMT', 'PG', 'KO', 'PEP', 'COST', 'HD', 'MCD', 'NKE', 'SBUX', 'TGT', 'LOW', 'EL', 'CL', 'YUM', 'DIS',
+    'WMT', 'PG', 'KO', 'PEP', 'COST', 'HD', 'MCD', 'NKE', 'SBUX', 'TGT', 'LOW', 'EL', 'CL', 'YUM', 'DIS', 'LVMUY', 'CELH', 'OTLY', 
     
     # 能源
     'XOM', 'CVX', 'COP', 'EOG', 'SLB', 'OXY', 'PSX', 'VLO', 'MPC',
@@ -57,7 +57,10 @@ SYMBOLS = [
     'AMT', 'EQIX', 'PLD', 'SPG', 'O', 'WELL',
     
     # ETFs
-    'SPY', 'QQQ', 'IWM', 'VTI', 'XLK', 'XLF', 'XLV', 'XLP', 'XLE', 'ARKK', 'VGT', 'VOO', 'VUG', 'VYM', 'SOXX'
+    'SPY', 'QQQ', 'IWM', 'VTI', 'XLK', 'XLF', 'XLV', 'XLP', 'XLE', 'ARKK', 'VGT', 'VOO', 'VUG', 'VYM', 'SOXX', 
+
+    # 自动化与机器人
+    'ROK', 'ABB', 'FANUY', 'IRBT', 
 ]
 
 # 修改4: 调整calculate_multi_factor_signal函数中的各项指标阈值
@@ -536,7 +539,7 @@ def execute_trade(symbol, action, qty=None, force_trade=False):
         clock = api.get_clock()
         if not clock.is_open:
             logger.warning("市场已关闭，无法交易")
-            return None
+            # return None
         
         # Get account information
         account = api.get_account()
@@ -768,13 +771,17 @@ def run_intelligent_trading_system(symbols=None, schedule_retrain_enabled=True, 
     try:
         positions = api.list_positions()
         for position in positions:
-            # 计算当前盈亏百分比
+            # 确保所有值都是浮点数
             entry_price = float(position.avg_entry_price)
             current_price = float(position.current_price)
+            market_value = float(position.market_value)
+            qty = float(position.qty)
+            
+            # 计算盈亏百分比
             profit_pct = ((current_price / entry_price) - 1) * 100
             
-            print(f"{position.symbol}: {position.qty} 股, 均价: ${entry_price:.2f}, "
-                  f"现价: ${current_price:.2f}, 盈亏: {profit_pct:.2f}%, 市值: ${position.market_value:.2f}")
+            print(f"{position.symbol}: {qty} 股, 均价: ${entry_price:.2f}, "
+                f"现价: ${current_price:.2f}, 盈亏: {profit_pct:.2f}%, 市值: ${market_value:.2f}")
     except Exception as e:
         logger.error(f"获取持仓失败: {str(e)}")
     
